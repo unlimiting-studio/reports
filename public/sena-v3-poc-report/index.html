@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sena-ai v3 — PoC 0단계 보고서</title>
+    <meta
+      name="description"
+      content="ai-sdk + chat-sdk + state-pg + claude-code 조합의 라이브 검증 결과. 미지수 8건 닫힘 + 확정 결정 #2/#3 채택 + 본 마이그 §1 진입 신호."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      .prose-doc h2 {
+        @apply mt-16 mb-4 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h3 {
+        @apply mt-10 mb-3 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h4 {
+        @apply mt-6 mb-2 text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc p {
+        @apply text-[15px] leading-7 text-slate-700 dark:text-slate-300;
+      }
+      .prose-doc ul {
+        @apply my-4 ml-5 list-disc space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc ol {
+        @apply my-4 ml-5 list-decimal space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc strong {
+        @apply font-semibold text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc code {
+        @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800 dark:bg-slate-800 dark:text-slate-200;
+      }
+      .prose-doc pre {
+        @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-[13px] leading-6 text-slate-100;
+      }
+      .prose-doc pre code {
+        @apply bg-transparent p-0 text-slate-100;
+      }
+      .prose-doc table {
+        @apply my-6 w-full border-collapse text-[14px];
+      }
+      .prose-doc th {
+        @apply border-b border-slate-300 bg-slate-50 px-3 py-2 text-left font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
+      }
+      .prose-doc td {
+        @apply border-b border-slate-200 px-3 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-300;
+      }
+      .prose-doc blockquote {
+        @apply my-6 border-l-2 border-emerald-500 bg-emerald-50/50 px-5 py-4 text-[15px] text-slate-800 dark:bg-emerald-500/10 dark:text-slate-200;
+      }
+      .anchor {
+        @apply -ml-6 pr-2 text-slate-300 opacity-0 transition-opacity hover:text-emerald-500 dark:text-slate-600;
+      }
+      h2:hover .anchor,
+      h3:hover .anchor {
+        @apply opacity-100;
+      }
+      .pill {
+        @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+      }
+      .pill-final {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-500/10 dark:text-emerald-300;
+      }
+      .pill-meta {
+        @apply border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300;
+      }
+      .check {
+        @apply inline-flex items-center justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <header
+      class="border-b border-slate-200 bg-gradient-to-b from-emerald-50/40 to-white py-12 dark:border-slate-800 dark:from-emerald-950/20 dark:to-slate-950"
+    >
+      <div class="mx-auto max-w-3xl px-6">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span class="pill pill-meta">PoC Report</span>
+          <span class="pill pill-final">
+            <svg class="size-1.5 fill-emerald-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
+            Final · 2026-05-10
+          </span>
+          <span class="pill pill-meta">unlimiting-studio</span>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          sena-ai v3 — PoC 0단계 보고서
+        </h1>
+        <p class="mt-3 text-lg text-slate-600 dark:text-slate-400">
+          <code>ai</code> + <code>chat</code> + <code>@chat-adapter/state-pg</code> +
+          <code>claude-code</code> 조합 라이브 검증.<br class="hidden sm:block" />
+          미지수 8건 전부 닫힘 · 확정 결정 #2 / #3 권고안 확보 · 본 마이그 §1 진입 GO.
+        </p>
+        <dl class="mt-8 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">작성</dt>
+            <dd class="text-slate-800 dark:text-slate-200">세나 (Channy 의뢰)</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">검증 일자</dt>
+            <dd class="text-slate-800 dark:text-slate-200">2026-05-10 (KST)</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">PoC 코드</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>~/agents/sena-poc/</code>
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">라이브 봇</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>lily</code> (<code>U0APLTFB3E0</code>)
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">관련 채널</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>#project-sena</code> (C0AFW5Y133J)
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">SPEC</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>unlimiting-studio/sena-ai</code> <code>v3</code> orphan
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="./REPORT.md"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg
+              class="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            원본 REPORT.md
+          </a>
+          <a
+            href="/sena-v3-prd/"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ← PRD rev. 2
+          </a>
+          <a
+            href="https://github.com/unlimiting-studio/sena-ai/tree/v3"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.73-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.16 1.18a10.92 10.92 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.05.78 2.13v3.16c0 .31.21.68.79.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+              />
+            </svg>
+            SPEC tree
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-6 py-12">
+      <nav
+        class="mb-12 rounded-lg border border-slate-200 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/50"
+      >
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          목차
+        </p>
+        <ol class="grid gap-1 text-sm sm:grid-cols-2">
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#summary">한 줄 결론</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#unknowns">검증된 미지수 8</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#decisions">확정 결정 #2 / #3</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#side-findings">부수 발견</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#spec-rev2">SPEC rev. 2 흡수</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#go">본 마이그 진입 신호</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#env">PoC 환경</a></li>
+          <li><a class="text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400" href="#ac">AC</a></li>
+        </ol>
+      </nav>
+
+      <article class="prose-doc">
+        <section id="summary">
+          <h2>한 줄 결론<a class="anchor" href="#summary">#</a></h2>
+          <blockquote>
+            <code>ai</code> + <code>chat</code> + <code>@chat-adapter/slack</code> +
+            <code>@chat-adapter/state-pg</code> + <code>ai-sdk-provider-claude-code</code> 조합으로
+            <strong>단일 Node 프로세스에서 Slack 멘션 한 turn이 끝까지 도는 것 + 영속화 + 동시성·인터럽트 제어가
+            라이브에서 검증됐다.</strong> SPEC §0 미지수 8개 전부 닫힘. 본 마이그 §1 진입 GO.
+          </blockquote>
+        </section>
+
+        <section id="unknowns">
+          <h2>검증된 미지수 (SPEC §0 체크리스트 8/8)<a class="anchor" href="#unknowns">#</a></h2>
+          <table>
+            <thead>
+              <tr><th>#</th><th>미지수</th><th>검증 방법</th><th>결과</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>ai-sdk <code>LanguageModelV3Middleware</code> hook 가능 지점</td>
+                <td><code>transformParams</code> + <code>wrapStream</code>에 <code>traceLogger</code> 박고 chunk 분포 관찰</td>
+                <td><span class="check">✅</span> <code>stream-start / response-metadata / reasoning-* / tool-input-* / tool-call / tool-result / text-* / finish</code> 전부 노출. 한 turn에 8 tool call까지 trace 잡힘</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>chat-sdk 핸들러 hook 가능 지점</td>
+                <td><code>onNewMention</code> / <code>onSubscribedMessage</code> 라이브 트리거</td>
+                <td><span class="check">✅</span> mention → <code>subscribe()</code> → 후속 메시지 <code>onSubscribedMessage</code>로 정확히 라우팅</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td><code>ScheduledMessage</code>가 <code>cronSchedule</code> 흡수</td>
+                <td>(차니 정정: 다른 거. 흡수 안 함)</td>
+                <td><span class="check">✅</span> 우리 패턴으로 PoC: <code>setTimeout</code> → <code>chat.thread(threadId)</code> 외부 reference → <code>streamText</code> → <code>thread.post(string)</code>. 라이브 동작</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td><code>@chat-adapter/slack</code> 출력 디테일</td>
+                <td>(차니 결정: lily 라이브 사용에서 markdown_text native·streaming·mrkdwn 자동 처리 확인)</td>
+                <td><span class="check">✅</span></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>Zod inline tool 흡수</td>
+                <td>(차니 결정)</td>
+                <td><span class="check">✅</span> claude-code provider 미지원, MCP 우회 정답</td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>chat-sdk observability 범위</td>
+                <td><code>traceLogger</code> middleware로 충분</td>
+                <td><span class="check">✅</span> chat-sdk 자체 trace API 별도 의존 불필요</td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td><code>@chat-adapter/state-pg</code> 실 동작</td>
+                <td>Docker PG → <code>createPostgresState</code> → 자동 스키마(5 테이블) → <code>subscribe()</code> PG 영속 → 재시작 → 멘션 <em>없는</em> follow-up이 <code>onSubscribedMessage</code>로 라우팅</td>
+                <td><span class="check">✅</span> <strong>확정 결정 #2 검증 완료</strong></td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td>프로세스 구조 입력</td>
+                <td>단일 프로세스 + drain wrapper + AbortController 기반 steering</td>
+                <td><span class="check">✅</span> <strong>확정 결정 #3 권고안 도출</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="decisions">
+          <h2>확정된 결정<a class="anchor" href="#decisions">#</a></h2>
+
+          <h3>#2 — <code>@chat-adapter/state-pg</code> ✅ 채택</h3>
+          <h4>라이브 검증</h4>
+          <ul>
+            <li>Docker <code>postgres:16-alpine</code> 띄움 (15432 포트, dev용 password)</li>
+            <li><code>createPostgresState({ url, keyPrefix: "sena-poc" })</code> 한 줄 추가 → 부팅 시 5개 테이블 자동 생성: <code>chat_state_subscriptions</code>, <code>chat_state_locks</code>, <code>chat_state_queues</code>, <code>chat_state_cache</code>, <code>chat_state_lists</code></li>
+            <li>멘션 → <code>await thread.subscribe()</code> → <code>chat_state_subscriptions</code>에 row 영속</li>
+            <li>SIGTERM 종료 → 재시작 → 같은 thread에 <em>멘션 없는</em> 메시지 → <code>[turn.enter label=onSubscribedMessage]</code> ✅</li>
+          </ul>
+          <h4>의미 (차니 의문에 답)</h4>
+          <p>
+            codex/claude-code 자체 state(<code>~/.claude/projects/*.jsonl</code> 등)는
+            <strong>모델 conversation context</strong> 보관. chat-sdk state는
+            <strong>thread routing/concurrency 메타데이터</strong> 보관 (subscribe 영속 / lock /
+            queue / per-thread state). 역할이 다르고 둘 다 필요. v2
+            <code>wasBotMentionedInThread()</code> 우회 패턴이 정확히 chat-sdk state 부재로 생긴
+            인메모리 한계였고, state-pg가 이걸 native 해결.
+          </p>
+
+          <h3>#3 — 단일 프로세스 + 자체 drain wrapper + AbortController 기반 steering 레이어 ✅ 채택 권고</h3>
+          <h4>검증된 동작</h4>
+          <ul>
+            <li><strong>단일 Node 프로세스</strong> — v2의 부모/워커 분리(SIGUSR2 rolling restart) 대신 한 프로세스에서 다중 connector·schedule·hot-reload 운영 가능</li>
+            <li><strong>drain wrapper</strong> — chat-sdk <code>Chat.shutdown()</code>은 어댑터/state disconnect만 하고 in-flight 핸들러는 기다리지 않음 (<code>node_modules/chat/dist/index.js:2454-2476</code> 직접 확인). 우리가 핸들러 위에 <code>inFlight</code> 카운터 + drain 루프(SIGTERM 받으면 inFlight=0 될 때까지 200ms 폴링, 60s timeout)를 박아서 graceful shutdown 보장</li>
+            <li><strong>multi-socket coexist</strong> — 같은 xapp 토큰으로 두 인스턴스 동시 socket 연결 가능 (Slack 공식 멀티 소켓 분산 라우팅) → zero-downtime rolling restart 패턴 가능</li>
+            <li><strong>AbortController 기반 steering</strong> — chat-sdk <code>concurrency: "concurrent"</code>로 thread lock 우회 → thread별 <code>Map&lt;threadKey, AbortController&gt;</code> 보관 → 새 메시지 도착 시 즉시 abort → ai-sdk <code>streamText({ abortSignal })</code>로 전파되어 stream 정상 종료(<code>error=1</code>로 마감) → 같은 핸들러 내부 loop가 새 컨텍스트로 다음 turn 시작</li>
+            <li><strong>step-단위 steering(옵셔널)</strong> — <code>tool-result</code> chunk를 step 경계 신호로 써서 mid-tool-call 인터럽트 회피. <code>SENA_POC_STEER_MODE=step</code>로 토글</li>
+          </ul>
+          <h4>concurrency 4전략 라이브 검증</h4>
+          <ul>
+            <li><code>drop</code> (chat-sdk 기본): 새 메시지 무시 — 차니가 처음 본 "두 번째 멘션 드롭" 원인</li>
+            <li><code>queue</code>: 큐잉 + drainQueue 가장 최신 dispatch + <code>context.skipped</code>로 중간 메시지 핸들러 전달</li>
+            <li><code>concurrent</code> + 우리 즉시 abort steering: 진행 중 turn 즉시 중단 + 새 컨텍스트 재시작</li>
+            <li><code>concurrent</code> + 우리 step-steering: tool-result 경계까지 대기 후 abort</li>
+          </ul>
+        </section>
+
+        <section id="side-findings">
+          <h2>부수 발견 (본 마이그 시 wrapper / upstream PR 후보)<a class="anchor" href="#side-findings">#</a></h2>
+          <p>세 건 모두 chat-sdk(<code>chat@4.28.1</code> / <code>@chat-adapter/slack@4.28.1</code>)에서 발견. PoC PR이나 본 마이그 시점에 wrapper 패치 또는 upstream 이슈 등록 결정.</p>
+
+          <h3>1. <code>Thread.handleStream</code>이 외부 reference에서 깨짐</h3>
+          <p>
+            <code>node_modules/chat/dist/index.js:1631</code>에서
+            <code>this._currentMessage.author.userId</code> dereference. <code>_currentMessage</code>가
+            null인 외부 트리거 thread (<code>chat.thread(threadId)</code>로 만든 reference)에서 stream
+            post 호출 시 <code>Cannot read properties of undefined (reading 'userId')</code>로 깨짐.
+            cron 발화처럼 incoming message가 없는 시나리오에서 streaming 출력 불가. 우리 PoC는
+            <code>await result.text</code> 후 string post로 우회.
+          </p>
+
+          <h3>2. abort 시 <code>chatStream.stop()</code>이 <code>not_authed</code> 던짐</h3>
+          <p>
+            진행 중 streamText abort 시
+            <code>@chat-adapter/slack/dist/index.js:3386</code>에서 stream close 처리 중
+            <code>not_authed</code> 1건. 새 turn에는 영향 없지만 abort된 stream의 클로즈 처리가
+            깨끗하지 않음.
+          </p>
+
+          <h3>3. <code>Chat.shutdown()</code> in-flight handler drain 부재</h3>
+          <p>
+            <code>Chat.shutdown()</code>(<code>chat/dist/index.js:2454</code>)이 어댑터/state disconnect만
+            하고 in-flight 핸들러는 추적/대기하지 않음. 우리가 drain wrapper로 메움.
+          </p>
+        </section>
+
+        <section id="spec-rev2">
+          <h2>SPEC rev. 2로 흡수할 결과<a class="anchor" href="#spec-rev2">#</a></h2>
+          <table>
+            <thead>
+              <tr><th>분할 스펙</th><th>변경 사항</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>SPEC.md</code></td><td>"검증 필요 영역" → "검증 완료" 섹션 / 확정 결정 #2 ✅ / #3 ✅ 단일 프로세스 + drain wrapper + steering / 부수 발견 3건</td></tr>
+              <tr><td><code>docs/specs/migration.md</code></td><td>§0 체크리스트 결과 표 / 일정 갱신 (5/10 PoC 완료 → 5/14 본 마이그 §1) / "잃는 것" 섹션에 부수 발견 3건 추가</td></tr>
+              <tr><td><code>docs/specs/hooks.md</code></td><td><code>traceLogger</code> middleware 구체 패턴 (transformParams + wrapStream chunk count)</td></tr>
+              <tr><td><code>docs/specs/connectors/slack.md</code></td><td>state-pg 채택 / multi-socket coexist / 부수 발견 3건</td></tr>
+              <tr><td><code>docs/specs/architecture.md</code></td><td>단일 프로세스 + drain wrapper + steering 레이어 흐름도</td></tr>
+              <tr><td><code>docs/specs/schedules.md</code></td><td><code>ScheduledMessage</code> ≠ <code>cronSchedule</code> 명시 / 우리 패턴 (외부 cron + <code>chat.thread()</code> reference + <code>thread.post(string)</code>)</td></tr>
+              <tr><td><code>docs/specs/tools.md</code></td><td>Zod inline tool 미지원 → MCP 우회 확정</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="go">
+          <h2>본 마이그 진입 신호<a class="anchor" href="#go">#</a></h2>
+          <h3>GO 조건 충족</h3>
+          <ol>
+            <li>✅ 8개 미지수 닫힘</li>
+            <li>✅ 확정 결정 #2 / #3 권고안 확보</li>
+            <li>✅ 부수 발견 3건 명시 (수용 가능 범위)</li>
+            <li>✅ 본 마이그 일정 흐름 그대로 (5/14 §1 시작)</li>
+          </ol>
+          <h3>§1에서 첫 작업으로 처리할 항목</h3>
+          <ul>
+            <li><code>~/agents/sena-poc/</code>를 sena_v2 또는 신규 베어본 에이전트로 승격 (SPEC <code>migration.md §1</code>)</li>
+            <li><code>defineConfig({ model, adapters, middlewares, schedules, state, mcpServers })</code> 1차 가설 그대로 구현</li>
+            <li>부수 발견 #1 (외부 reference stream post) wrapper 또는 upstream PR</li>
+          </ul>
+        </section>
+
+        <section id="env">
+          <h2>PoC 환경 (재현용)<a class="anchor" href="#env">#</a></h2>
+          <h3>의존 (확정 버전)</h3>
+          <ul>
+            <li><code>ai@6.0.177</code></li>
+            <li><code>chat@4.28.1</code></li>
+            <li><code>@chat-adapter/slack@4.28.1</code></li>
+            <li><code>@chat-adapter/state-memory@4.28.1</code></li>
+            <li><code>@chat-adapter/state-pg@4.28.1</code></li>
+            <li><code>ai-sdk-provider-claude-code@3.4.4</code></li>
+            <li><code>ai-sdk-provider-codex-cli@1.1.0</code></li>
+          </ul>
+          <h3>모드 토글 (env)</h3>
+          <ul>
+            <li><code>SENA_POC_ENGINE=codex</code> — 기본 claude-code → codex-cli</li>
+            <li><code>SENA_POC_STEER_MODE=step</code> — 즉시 abort → 스텝 경계 abort</li>
+            <li><code>SENA_POC_STEER_MODE=queue</code> — chat-sdk lock + drainQueue (회귀 비교용)</li>
+            <li><code>DATABASE_URL=postgres://...</code> — state-memory → state-pg 토글</li>
+            <li><code>SENA_POC_CRON_TARGET=&lt;threadId&gt;</code> — 부팅 30초 후 cron 셀프 트리거 데모</li>
+          </ul>
+          <h3>기본 동작 (env 없음)</h3>
+          <ul>
+            <li>엔진: claude-code</li>
+            <li>인터럽트: 즉시 abort steering</li>
+            <li>state: 인메모리</li>
+            <li>cron: off</li>
+          </ul>
+        </section>
+
+        <section id="ac">
+          <h2>AC (수용 기준)<a class="anchor" href="#ac">#</a></h2>
+          <ol>
+            <li>✅ Slack 멘션 한 turn이 chat-sdk · ai-sdk middleware · state-pg · drain wrapper 모두 통과해서 라이브 응답까지 도착</li>
+            <li>✅ 재시작 후 subscription 영속으로 follow-up 메시지가 <code>onSubscribedMessage</code>로 라우팅</li>
+            <li>✅ 진행 중 turn에 새 메시지 도착 시 즉시 abort + 새 컨텍스트로 재시작 (steering)</li>
+            <li>✅ cron 셀프 트리거 turn이 일반 mention turn과 동일한 trace middleware 경로로 동작</li>
+          </ol>
+        </section>
+      </article>
+    </main>
+
+    <footer
+      class="border-t border-slate-200 bg-slate-50 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+    >
+      <p>
+        검증 일자 2026-05-10 (KST) · 라이브 검증 thread: <code>#project-sena</code>
+        <code>1778332211.565639</code>
+      </p>
+      <p class="mt-1">
+        <a class="hover:text-emerald-600 dark:hover:text-emerald-400" href="/">reports.yechanny.workers.dev</a>
+      </p>
+    </footer>
+  </body>
+</html>

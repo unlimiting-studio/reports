@@ -274,9 +274,9 @@ focus_item({ itemId: "next" })
     <section class="space-y-8">
       <div class="text-center space-y-2">
         <div class="text-sm font-mono text-cyan-400 uppercase tracking-widest">Section 3</div>
-        <h2 class="text-3xl font-bold">Voice Loop — 5상태 사이클</h2>
+        <h2 class="text-3xl font-bold">Voice Loop — 두 머신 토폴로지</h2>
         <p class="text-slate-400">
-          각 화살표 옆에 <strong class="text-yellow-200">"무슨 조건이면 통과하는가"</strong>를 한국어 한 문장으로. 마이크로 컨트롤은 사이클의 화살표를 만드는 게이트예요.
+          음성 루프는 <strong class="text-cyan-200">Web Client (LocalTurnDetector)</strong> 머신과 <strong class="text-purple-200">Gateway (SessionRuntime)</strong> 머신, 두 개의 분리된 상태 머신이 <code class="text-yellow-300">turn.commit</code> 하나로 연결되는 구조예요. VAD/STT 같은 입력 신호는 Client 머신 안의 transition guard로, Gateway는 자기 이벤트만 받아요.
         </p>
       </div>
 
@@ -284,24 +284,91 @@ focus_item({ itemId: "next" })
         <!-- Main loop diagram -->
         <div class="mermaid">
 stateDiagram-v2
-  direction LR
-  [*] --> IDLE
-  IDLE --> LISTENING : 세션 시작
+  state "Web Client · LocalTurnDetector" as Client {
+    direction LR
+    [*] --> SILENT
+    SILENT --> CAPTURING : speech_start
+    CAPTURING --> SILENT : speech_end [empty]
+    CAPTURING --> SETTLING : speech_end [content]
+    SETTLING --> CAPTURING : speech_start [resumed]
+    SETTLING --> SILENT : settle 1s
+  }
 
-  LISTENING --> LISTENING : 마이크 침묵 / 호출어 미매칭 / 1초 settle 미충족 / 빈 발화
+  state "Gateway · SessionRuntime" as Gateway {
+    direction LR
+    [*] --> IDLE
+    IDLE --> LISTENING : session.start
+    LISTENING --> AGENT_THINKING : turn.committed
+    AGENT_THINKING --> AGENT_SPEAKING : phrase.audio_ready
+    AGENT_THINKING --> LISTENING : generation.discard
+    AGENT_SPEAKING --> LISTENING : playback.all_ended
+    AGENT_SPEAKING --> INTERRUPTING : interrupt.committed
+    INTERRUPTING --> LISTENING : abort.complete
+    AGENT_SPEAKING --> AGENT_SPEAKING : turn.committed [ignored]
+  }
 
-  LISTENING --> AGENT_THINKING : turn completion candidate — Soniox final/endpoint + 호출어 통과 + 1초 settle + 비어있지 않음
+  SETTLING --> LISTENING : turn.commit
+        </div>
 
-  AGENT_THINKING --> AGENT_SPEAKING : 첫 phrase TTS 합성 완료
-  AGENT_THINKING --> LISTENING : 방금 자기가 만든 빈 turn 폐기
-
-  AGENT_SPEAKING --> AGENT_SPEAKING : 잡음·짧은 발화 → 재생 계속 / 새 turn 무시
-
-  AGENT_SPEAKING --> LISTENING : 모든 phrase 재생 끝
-
-  AGENT_SPEAKING --> INTERRUPTING : 사용자 끼어들기 — VAD speech_start + 의미있는 STT final → Gateway 승격
-
-  INTERRUPTING --> LISTENING : TTS·LLM·재생 병렬 abort 완료
+        <!-- 이벤트 트리거 표 -->
+        <div class="space-y-3">
+          <div class="flex items-baseline justify-between flex-wrap gap-2">
+            <h4 class="text-sm font-bold text-slate-200 uppercase tracking-widest">이 이벤트는 누가, 언제 쏘는가</h4>
+            <span class="text-xs text-slate-500">화살표 라벨이 어디서 오는지 코드 위치까지</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-xs text-slate-400 uppercase tracking-widest">
+                <tr class="border-b border-slate-700/50">
+                  <th class="text-left py-2 pr-4">이벤트</th>
+                  <th class="text-left py-2 pr-4">발생 주체</th>
+                  <th class="text-left py-2">트리거 조건</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-300">
+                <tr class="border-b border-slate-800/50 align-top">
+                  <td class="py-3 pr-4 font-mono text-cyan-300">speech_start</td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">TEN VAD</div>
+                    <div class="text-xs text-slate-500">apps/web-client/src/runtime/ten-vad-stream.ts</div>
+                  </td>
+                  <td class="py-3">16kHz·256샘플(16ms) WASM 추론에서 RMS 임계 + sustained voiced 프레임이 잡히면 발화 시작 신호. PCM이 prebuffer와 함께 STT로 흐르기 시작.</td>
+                </tr>
+                <tr class="border-b border-slate-800/50 align-top">
+                  <td class="py-3 pr-4 font-mono text-cyan-300">speech_end<br><span class="text-xs text-slate-500">[empty / content]</span></td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">TEN VAD + LocalTurnDetector</div>
+                    <div class="text-xs text-slate-500">runtime/local-turn-detector.ts:177</div>
+                  </td>
+                  <td class="py-3">TEN VAD가 silence sustained로 발화 종료를 알리면, LocalTurnDetector의 buffer에 쌓인 STT final 토큰을 trim. 결과가 비어 있으면 <code class="text-rose-300">[empty]</code> → SILENT로, 호출어 게이트까지 통과한 텍스트가 있으면 <code class="text-emerald-300">[content]</code> → SETTLING으로.</td>
+                </tr>
+                <tr class="border-b border-slate-800/50 align-top">
+                  <td class="py-3 pr-4 font-mono text-cyan-300">speech_start<br><span class="text-xs text-slate-500">[resumed]</span></td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">TEN VAD</div>
+                    <div class="text-xs text-slate-500">동일 신호, SETTLING 중 도착</div>
+                  </td>
+                  <td class="py-3">settle 타이머가 끝나기 전에 TEN VAD가 새로운 발화를 잡으면 settle을 취소하고 CAPTURING으로 복귀. 1초 안에 이어 말하면 같은 turn으로 합쳐지는 이유.</td>
+                </tr>
+                <tr class="border-b border-slate-800/50 align-top">
+                  <td class="py-3 pr-4 font-mono text-cyan-300">settle 1s</td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">LocalTurnDetector</div>
+                    <div class="text-xs text-slate-500">local-turn-detector.ts:9 · SETTLE_DELAY_MS=1000</div>
+                  </td>
+                  <td class="py-3">CAPTURING → SETTLING 진입 시 켜둔 1초 타이머가 만료되면 turn 확정. 호출어 직후 첫 명령은 <code class="text-amber-300">FRESH_WAKE_SETTLE_DELAY_MS=250ms</code>로 더 빠르게 끊음(line 10).</td>
+                </tr>
+                <tr class="align-top">
+                  <td class="py-3 pr-4 font-mono text-pink-300">turn.commit</td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">LocalTurnDetector → Gateway</div>
+                    <div class="text-xs text-slate-500">local-turn-detector.ts:136 · canDispatchCommit</div>
+                  </td>
+                  <td class="py-3">settle 만료 후 dispatch 게이트(<code class="text-slate-400">gatewayState ∉ {AGENT_SPEAKING, INTERRUPTING}</code>) 통과 시 Gateway로 송신. 두 머신을 잇는 유일한 cross-arrow. Agent가 말하는 동안 들어온 turn은 큐에 머물다 LISTENING 복귀 시 flush.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- 5상태 카드 -->

@@ -1,10 +1,19 @@
 # sena-ai v3 — Product Requirements Document
 
-**상태:** Draft (2026-05-09, rev. 2)
+**상태:** rev. 3 (2026-05-10, PoC 0단계 검증 결과 반영)
 **작성:** 세나 (Channy 의뢰)
 **관련 채널:** #project-sena (`C0AFW5Y133J`)
 **기존 리포:** `Variel/sena` → 신규 `unlimiting-studio/sena-ai` `v3` orphan branch
 **대체 대상:** `@sena-ai/*` 모노레포(core / cli / hooks / runtime-claude / runtime-codex / connector-slack / tools-slack / slack)
+**PoC 보고서:** <https://reports.yechanny.workers.dev/sena-v3-poc-report/>
+
+## rev. 3 changelog (2026-05-10)
+
+PoC 0단계 라이브 검증 결과를 흡수했다.
+
+- §9 Risk Matrix: 미지수 8건 결과 반영 (8/8 닫힘). chat-sdk 부수 발견 3건 추가.
+- §10 일정: PoC 0단계 5/10 당일 완료 → 본 마이그 §1 5/14 시작 그대로.
+- §11 후속 의사결정: #2(state-pg) ✅ / #3(프로세스 구조) ✅ 단일 프로세스 + drain wrapper + steering 레이어 확정.
 
 ---
 
@@ -76,29 +85,33 @@ community 생태계 — Vercel ai-sdk와 chat-sdk, Ben Vargas의 `ai-sdk-provide
 
 ## 9. 잃는 것 / 검증 필요한 것 (Risk Matrix)
 
-| 항목                                                | 영향                                          | 대응                                                                                              |
+| 항목                                                | 영향                                          | 결과 (rev. 3)                                                                                   |
 | --------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| chat-sdk Slack 어댑터의 디테일 커버 범위 미지       | mrkdwn / unfurl / streaming 회귀 가능         | 1차 마이그 직후 전수조사 1회 + 미커버 항목 wrapper 또는 upstream PR.                              |
-| ai-sdk middleware의 hook 가능 지점                  | v2 hook 함수 시그니처 그대로 못 옮김           | `transformParams`/`wrapGenerate`/`wrapStream` 위에 다시 설계. 마이그 중 결정.                      |
-| chat-sdk session state adapter 선택                 | 운영 의존성 변화                               | 차니 결정 큐. in-memory 시 재시작 시 history 손실 / Redis·PG 시 외부 의존 추가.                     |
-| chat-sdk `ScheduledMessage`가 cronSchedule 흡수 여부 | FR-4 구현 형태 결정                           | API doc 추가 검토 + 1차 마이그에서 시도.                                                          |
-| Zod inline tool                                     | v2 `defineTool()` 코드 손봐야 함              | chat-sdk·ai-sdk 자체 tool 메커니즘 우선 확인. 안 되면 MCP server 우회.                             |
-| chat-sdk의 자체 observability 범위                  | NFR-4 책임 분리 결정                           | 1차 마이그 중 chat-sdk 핸들러 trace 가능 여부 확인. 부족하면 ai-sdk middleware 쪽에서 보강.        |
+| chat-sdk Slack 어댑터의 디테일 커버 범위 미지       | mrkdwn / unfurl / streaming 회귀 가능         | ✅ markdown_text native + streaming 동작. 마이그 §"5/21 디테일 전수조사" 슬롯에서 미커버 항목 마저. |
+| ai-sdk middleware의 hook 가능 지점                  | v2 hook 함수 시그니처 그대로 못 옮김           | ✅ `transformParams` + `wrapStream` 모두 동작. PoC `traceLogger` 라이브 검증.                       |
+| chat-sdk session state adapter 선택                 | 운영 의존성 변화                               | ✅ **`@chat-adapter/state-pg` 채택**. PoC에서 subscribe 영속 + 재시작 후 라우팅 검증.                |
+| chat-sdk `ScheduledMessage`가 cronSchedule 흡수 여부 | FR-4 구현 형태 결정                           | ❌ 다른 개념(미래 발송 1-shot). 우리 패턴(`chat.thread()` reference + string post)으로 직접 짠다.    |
+| Zod inline tool                                     | v2 `defineTool()` 코드 손봐야 함              | ❌ provider 미지원. **inline MCP 우회 확정**.                                                       |
+| chat-sdk의 자체 observability 범위                  | NFR-4 책임 분리 결정                           | ✅ ai-sdk `wrapStream` middleware로 충분. chat-sdk 자체 trace API 별도 의존 불필요.                 |
+| **(신규) chat-sdk `Thread.handleStream` 외부 reference 미지원** | cron 발화 streaming 출력 불가 | wrapper 또는 upstream PR. 본 마이그 §1 첫 작업.                                                   |
+| **(신규) chat-sdk abort 시 `chatStream.stop()` not_authed**     | abort 직후 stream 클로즈 dirty | wrapper에서 swallow. 새 turn에는 영향 없음.                                                       |
+| **(신규) chat-sdk `Chat.shutdown()` drain 부재**                  | SIGTERM 시 in-flight turn 잘림 | 우리 `inFlight` 카운터 + drain 루프 wrapper로 메움 (확정 결정 #3에 흡수).                         |
 
-## 10. 일정 (1차 가설)
+## 10. 일정 (rev. 3, PoC 결과 반영)
 
-- **5/9 (오늘)** PRD 확정, `unlimiting-studio/reports`에 호스팅.
-- **5/10 ~ 5/13** sena-ai 새 `v3` orphan branch에 SPEC.md + 컴포넌트별 분할 스펙 작성.
-- **5/14 ~ 5/20** 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 마이그.
+- ✅ **5/9** PRD 확정, `unlimiting-studio/reports`에 호스팅.
+- ✅ **5/10** SPEC tree 작성 (rev. 1) + 차니 결정 4개 반영.
+- ✅ **5/10** PoC 0단계 라이브 검증 (당일 완료). [보고서](https://reports.yechanny.workers.dev/sena-v3-poc-report/) + SPEC rev. 2 발행.
+- **5/14 ~ 5/20** 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 본 마이그. **첫 작업: chat-sdk 부수 발견 3건 wrapper.**
 - **5/21 ~ 5/27** Slack 디테일 전수조사, 미커버 항목 패치.
 - **5/28 ~ 6/10** 본 에이전트 순차 마이그 (sena → 브렌 → lumie → sooki).
 - **6/11 ~ 6/24** v2 deprecation, 6주 디버그 항목 빈도 측정 시작.
 
-## 11. 후속 의사결정 포인트
+## 11. 후속 의사결정 포인트 (rev. 3)
 
-- **분담.** 세나(이 문서 작성자)가 마이그 순서·잃는 항목·sena 고유 인프라 매핑 책임. 브렌이 `ai-sdk-provider-*` 코드 + chat-sdk Slack 어댑터 직접 까서 우리 기능 매트릭스 대비 커버 검증. _(차니 confirm 대기)_
-- **chat-sdk state adapter 선택.** in-memory / `@chat-adapter/state-pg` / `@chat-adapter/state-redis` 중. _(차니 결정 필요)_
-- **프로세스 구조.** v2의 orchestrator-worker 분리를 유지할지, 단일 프로세스로 갈지, 더 좋은 방안을 찾을지. _(검토 후 차니 confirm)_
-- **앱 자체 패키지명.** v3는 우리 모노레포가 사라지고 *앱 한 개*가 publish 대상이 된다. 이름은 `@unlimiting-studio/sena` / `@sena-ai/sena` / 다른 안 중. _(차니 결정 필요)_
-- **sena-platform의 v3 흡수 시점.** 1차 마이그 완료 후 별도 라운드.
-- **v2 모노레포 history 보존 vs orphan branch 완전 reset.** _(차니 결정 필요)_
+- ✅ **분담.** 세나가 구현, 브렌이 검토 (2026-05-10).
+- ✅ **chat-sdk state adapter.** **`@chat-adapter/state-pg`** 채택 (2026-05-10, PoC 검증). codex/claude-code 자체 state(모델 conversation context)와 역할이 다른 thread routing/concurrency 메타데이터 보관.
+- ✅ **프로세스 구조.** **단일 프로세스 + 자체 drain wrapper + AbortController 기반 steering 레이어** 채택 (2026-05-10, PoC 검증). multi-socket coexist로 zero-downtime rolling restart 가능.
+- ✅ **앱 자체 패키지명.** **`@sena-ai/app`** 채택 (2026-05-10).
+- **sena-platform의 v3 흡수 시점.** 1차 마이그 완료 후 별도 라운드. _(보류)_
+- **v2 모노레포 history 보존 vs orphan branch 완전 reset.** 6/11 deprecation 시점 결정. _(보류)_

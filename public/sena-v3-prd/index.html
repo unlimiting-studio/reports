@@ -88,7 +88,7 @@
           <span class="pill pill-meta">PRD</span>
           <span class="pill pill-draft">
             <svg class="size-1.5 fill-amber-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
-            Draft · 2026-05-09 · rev. 2
+            rev. 3 · 2026-05-10 · PoC 검증 반영
           </span>
           <span class="pill pill-meta">unlimiting-studio</span>
         </div>
@@ -689,11 +689,15 @@ gantt
         </section>
 
         <section id="schedule">
-          <h2>10. 일정 (1차 가설) <a class="anchor" href="#schedule">#</a></h2>
+          <h2>10. 일정 (rev. 3, PoC 결과 반영) <a class="anchor" href="#schedule">#</a></h2>
           <ul>
-            <li><strong>5/9 (오늘)</strong> PRD 확정, <code>unlimiting-studio/reports</code>에 호스팅.</li>
-            <li><strong>5/10 ~ 5/13</strong> sena-ai 새 <code>v3</code> orphan branch에 SPEC.md + 컴포넌트별 분할 스펙 작성.</li>
-            <li><strong>5/14 ~ 5/20</strong> 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 마이그.</li>
+            <li>✅ <strong>5/9</strong> PRD 확정, <code>unlimiting-studio/reports</code>에 호스팅.</li>
+            <li>✅ <strong>5/10</strong> SPEC tree 작성(rev. 1) + 차니 결정 4개 반영.</li>
+            <li>✅ <strong>5/10</strong> PoC 0단계 라이브 검증 (당일 완료).
+              <a class="text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-400" href="/sena-v3-poc-report/">보고서</a> +
+              SPEC rev. 2 발행.</li>
+            <li><strong>5/14 ~ 5/20</strong> 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 본 마이그.
+              <strong>첫 작업: chat-sdk 부수 발견 3건 wrapper.</strong></li>
             <li><strong>5/21 ~ 5/27</strong> Slack 디테일 전수조사, 미커버 항목 패치.</li>
             <li><strong>5/28 ~ 6/10</strong> 본 에이전트 순차 마이그 (sena → 브렌 → lumie → sooki).</li>
             <li><strong>6/11 ~ 6/24</strong> v2 deprecation, 6주 디버그 항목 빈도 측정 시작.</li>
@@ -701,29 +705,26 @@ gantt
         </section>
 
         <section id="pending">
-          <h2>11. 후속 의사결정 포인트 <a class="anchor" href="#pending">#</a></h2>
+          <h2>11. 후속 의사결정 포인트 (rev. 3) <a class="anchor" href="#pending">#</a></h2>
           <ul>
             <li>
-              <strong>분담.</strong> 세나가 마이그 순서·잃는 항목·sena 고유 인프라 매핑 책임. 브렌이
-              <code>ai-sdk-provider-*</code> 코드 + chat-sdk Slack 어댑터 직접 까서 우리 기능 매트릭스
-              대비 커버 검증. <span class="text-amber-700 dark:text-amber-400">차니 confirm 대기.</span>
+              ✅ <strong>분담.</strong> 세나가 구현, 브렌이 검토 (2026-05-10).
             </li>
             <li>
-              <strong>chat-sdk state adapter 선택.</strong> in-memory / <code>@chat-adapter/state-pg</code> /
-              <code>@chat-adapter/state-redis</code> 중. <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
+              ✅ <strong>chat-sdk state adapter.</strong> <code>@chat-adapter/state-pg</code> 채택 (2026-05-10, PoC 검증).
+              codex/claude-code 자체 state(모델 conversation context)와 역할이 다른 thread routing/concurrency 메타데이터 보관.
             </li>
             <li>
-              <strong>프로세스 구조.</strong> v2 orchestrator-worker 분리 유지 / 단일 프로세스 / 더 좋은 방안.
-              <span class="text-amber-700 dark:text-amber-400">검토 후 차니 confirm.</span>
+              ✅ <strong>프로세스 구조.</strong> 단일 프로세스 + 자체 drain wrapper + AbortController 기반 steering 레이어 (2026-05-10, PoC 검증).
+              multi-socket coexist로 zero-downtime rolling restart 가능.
             </li>
             <li>
-              <strong>앱 자체 패키지명.</strong> <code>@unlimiting-studio/sena</code> /
-              <code>@sena-ai/sena</code> / 다른 안. <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
+              ✅ <strong>앱 자체 패키지명.</strong> <code>@sena-ai/app</code> 채택 (2026-05-10).
             </li>
-            <li><strong>sena-platform의 v3 흡수 시점.</strong> 1차 마이그 완료 후 별도 라운드.</li>
+            <li><strong>sena-platform의 v3 흡수 시점.</strong> 1차 마이그 완료 후 별도 라운드. <span class="text-slate-500">(보류)</span></li>
             <li>
-              <strong>v2 모노레포 history 보존 vs orphan branch 완전 reset.</strong>
-              <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
+              <strong>v2 모노레포 history 보존 vs orphan branch 완전 reset.</strong> 6/11 deprecation 시점 결정.
+              <span class="text-slate-500">(보류)</span>
             </li>
           </ul>
         </section>
@@ -738,7 +739,7 @@ gantt
           이 문서는 <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="/">reports.yechanny.workers.dev</a>에 호스팅된 일회성 PRD입니다.
         </div>
         <div>
-          최종 수정: 2026-05-09 rev. 2 ·
+          최종 수정: 2026-05-10 rev. 3 ·
           <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="./PRD.md">PRD.md</a>
         </div>
       </div>
