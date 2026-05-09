@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Qyuni — 그리드 트레이딩 백테스트 PoC (2026-05-10)</title>
+    <meta
+      name="description"
+      content="350만원 시드 / 동적 universe screening / 재현 가능한 백테스트 — Qyuni 프로젝트 첫 사이클 보고서."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <div class="mx-auto max-w-4xl px-6 py-16">
+      <!-- Header -->
+      <header class="mb-12 border-b border-slate-200 pb-10 dark:border-slate-800">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span
+            class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-500/10 dark:text-amber-300"
+          >
+            PoC · Sprint 1
+          </span>
+          <span class="text-xs text-slate-500 dark:text-slate-400">2026-05-10 KST</span>
+          <a
+            href="https://github.com/Variel/qyuni"
+            class="ml-auto text-xs font-mono text-slate-500 underline decoration-dotted underline-offset-4 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
+            >Variel/qyuni</a
+          >
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight">
+          Qyuni — 그리드 트레이딩 백테스트 PoC
+        </h1>
+        <p class="mt-3 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+          350만원 시드, 차트형 그리드 전략 단일, 바이낸스 24h 거래량 상위 USDT/BTC 페어를 동적 스크리닝.
+          <span class="font-semibold text-slate-900 dark:text-slate-100"
+            >다섯 단계의 커밋으로 "돌아가는 PoC" → "재현 가능한 백테스트 도구"까지 끌어올린 한 사이클의 기록.</span
+          >
+        </p>
+        <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">시드</p>
+            <p class="mt-0.5 font-semibold">3,500,000 KRW</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">데이터</p>
+            <p class="mt-0.5 font-semibold">1m × 30일</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Test 수익률</p>
+            <p class="mt-0.5 font-semibold text-emerald-600 dark:text-emerald-400">+2.28%</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">테스트</p>
+            <p class="mt-0.5 font-semibold">30 / 30 ✓</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- 1. 출발점 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">1. 출발점 — 정직한 비판</h2>
+        <p class="leading-relaxed text-slate-700 dark:text-slate-300">
+          다른 에이전트가 만든 초기 산물(<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm dark:bg-slate-800">SunnyQuantEngine</code> 카피페이스트, 평문 API 키, git 미초기화, "시간당 복리 1%" 타겟)을 발견. 정직 비판 6건으로 시작:
+        </p>
+        <ul class="mt-3 space-y-1.5 text-slate-700 dark:text-slate-300">
+          <li>• <strong>시간당 1%</strong> = 연 환산 약 87,000%. 시타델·점프트레이딩이 못 하는 그림.</li>
+          <li>• <strong>김프 차익거래</strong>는 트래블룰·출금 화이트리스트 때문에 350만 원 자동화 어려움.</li>
+          <li>• 백테스팅 엔진 없이 "실제 연동"이 next-action에. 순서 역전.</li>
+          <li>• 평문 JSON에 API 키 — vault 정책·출금 권한 OFF·IP 화이트리스트가 1순위 방어선.</li>
+          <li>• 클래스명 카피페이스트, git 미초기화, .gitignore 부재.</li>
+          <li>• 프로덕션 그레이드와 갭이 큼 — Risk Layer / 테스트 / Execution 모두 부재.</li>
+        </ul>
+      </section>
+
+      <!-- 2. 합의 형성 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">2. 합의 — 핑퐁으로 잠근 의사결정</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left dark:border-slate-800">
+                <th class="py-2 pr-4 font-semibold">항목</th>
+                <th class="py-2 pr-4 font-semibold">결정</th>
+                <th class="py-2 font-semibold">근거</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">목표</td>
+                <td class="py-2.5 pr-4">검증 가능한 거래 시스템</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">수익 극대화 ❌. 350만 원은 학습·검증 시드.</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">첫 전략</td>
+                <td class="py-2.5 pr-4">차트형 그리드</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">분~시간 단위 보유, OHLCV로 시뮬 가능.</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">펀딩비 차익</td>
+                <td class="py-2.5 pr-4">첫 칼에서 제외</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">며칠 보유 = "짧은 거래" 결과 안 맞음.</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">스프레드</td>
+                <td class="py-2.5 pr-4">백테스트 ❌, 페이퍼 ⭕</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">OHLCV로는 자기실현·레그 리스크 못 잡음.</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">Universe</td>
+                <td class="py-2.5 pr-4">고정 N ❌, 동적 셀렉션 ⭕</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">시장 상태에 따라 통과 N이 자연 조절.</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 pr-4 font-medium">자본 운용</td>
+                <td class="py-2.5 pr-4">선정 N개 균등 분할</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">한 심볼에 350만 다 박지 않음.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 3. 타임라인 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">3. 만든 것 — 5개 커밋의 단계</h2>
+        <ol class="relative space-y-6 border-l-2 border-slate-200 pl-6 dark:border-slate-800">
+          <li class="relative">
+            <span class="absolute -left-[33px] flex size-6 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-xs font-bold text-indigo-600 dark:bg-slate-950 dark:text-indigo-400">1</span>
+            <p class="font-mono text-xs text-slate-500 dark:text-slate-400">e803279 · feat: grid strategy backtest on 1m OHLCV</p>
+            <h3 class="mt-1 text-lg font-semibold">단일 그리드 + 30일 1분봉 백테스트</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              data_collector(1분봉 페이징), strategies/grid (등분 그리드), backtest/runner (low/high 기준 시뮬).
+              BTC/USDT 30일에서 +3.07% — 첫 산출이지만 in-sample bias 위험 큼.
+            </p>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[33px] flex size-6 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-xs font-bold text-indigo-600 dark:bg-slate-950 dark:text-indigo-400">2</span>
+            <p class="font-mono text-xs text-slate-500 dark:text-slate-400">9375929 · feat: multi-symbol grid backtest with train/test split</p>
+            <h3 class="mt-1 text-lg font-semibold">멀티 심볼 + train/test 분리</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              심볼 6개로 확장(USDT 5 + ETH/BTC), 자본 균등 분할. 30일을 train 15일·test 15일로 나눠서 bounds는 train만으로
+              결정. RoundTrip 객체 도입으로 round-trip net P&amp;L 정확화. 포트폴리오 +0.77%.
+            </p>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[33px] flex size-6 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-xs font-bold text-indigo-600 dark:bg-slate-950 dark:text-indigo-400">3</span>
+            <p class="font-mono text-xs text-slate-500 dark:text-slate-400">f816c4b · feat: dynamic universe screening for grid friendliness</p>
+            <h3 class="mt-1 text-lg font-semibold">동적 universe screening</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              바이낸스 24h quoteVolume 상위 16개 자동 추출(USDT 8 + BTC 8). train을 둘로 쪼개 OOS proxy 친화도(in_range,
+              trend_drift, volatility) 점수. 절대 임계로 통과만 백테스트 — 시장이 추세장이면 자연스럽게 통과 N이 줄어듦.
+              포트폴리오 +2.28% (4 selected).
+            </p>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[33px] flex size-6 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-xs font-bold text-indigo-600 dark:bg-slate-950 dark:text-indigo-400">4</span>
+            <p class="font-mono text-xs text-slate-500 dark:text-slate-400">bcae8b1 · feat: make backtest reproducible with universe snapshots</p>
+            <h3 class="mt-1 text-lg font-semibold">재현성 1단계 — universe snapshot</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-800">--universe-snapshot</code> 옵션,
+              `git_commit`/`generated_at` 메타데이터, 기본 단위 테스트 6건. 같은 universe 입력으로 결과 재현 가능.
+            </p>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[33px] flex size-6 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-xs font-bold text-indigo-600 dark:bg-slate-950 dark:text-indigo-400">5</span>
+            <p class="font-mono text-xs text-slate-500 dark:text-slate-400">617688f → a88954a · fix: harden backtest reproducibility and execution model</p>
+            <h3 class="mt-1 text-lg font-semibold">프로덕션 그레이드 직전 보강</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              세나 검증에서 짚은 11건 결함을 한 번에 닫음. 1223+/242- 코드 변경. 테스트 6 → 30개로 5배 확장.
+            </p>
+            <ul class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+              <li>• <strong>체결 모델 보수화</strong>: <code class="font-mono text-xs">max_volume_participation=0.001</code>, <code class="font-mono text-xs">min_notional=5 USDT</code>, dust 슬롯 평가 시 제외, 부분체결</li>
+              <li>• <strong>Walk-forward 4 fold</strong>(rolling, train 40% / test 15%) — 한 구간 결과의 일반화 검증</li>
+              <li>• <strong>거래소 응답 시각</strong> + <strong>데이터 SHA-256</strong> + <strong>fetch 시각 sidecar</strong> — provenance 풀세트</li>
+              <li>• <strong>working tree dirty 감지</strong> — `git_dirty` + porcelain + diff sha256까지 메타에 박힘</li>
+              <li>• <strong>universe snapshot metadata 검증</strong> — exchange/quote/days 미스매치 시 fail-fast, legacy는 warning</li>
+              <li>• <strong>`prev_close == level` 의도</strong>를 코드 docstring + 테스트로 잠금</li>
+            </ul>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 4. 시스템 그림 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">4. 시스템 그림</h2>
+        <pre class="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-5 font-mono text-xs leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+1. Universe        ─→  fetch_top_volume_pairs_with_metadata()  (or snapshot)
+2. Data            ─→  load_or_fetch()  +  DataProvenance(sha256, fetch_ts)
+3. Screening       ─→  score_grid_friendliness()  ─→  passes_thresholds()
+4. Selection       ─→  N개 통과 (시장 상태 의존)
+5. Capital         ─→  CAPITAL_KRW / N  균등 분할
+6. Backtest        ─→  GridConfig + BacktestParams(fee, slip, vol_part, min_notional)
+                       ↳ run_grid_backtest()  ─→  RoundTrip 추적
+7. Walk-forward    ─→  4 fold rolling (train 40% / test 15%)
+8. Report          ─→  run_metadata + git_dirty + walk_forward_summary
+                       data_provenance + universe_snapshot_path</pre>
+        <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+          현재 구조의 한계는 <strong>백테스트 전용</strong>이라는 점. 페이퍼/실전을 얹으려면 어댑터 레이어 분리가 필요.
+        </p>
+      </section>
+
+      <!-- 5. 결과 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">5. 핵심 결과 (test 15일)</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left dark:border-slate-800">
+                <th class="py-2 pr-4 font-semibold">심볼</th>
+                <th class="py-2 pr-4 text-right font-semibold">거래</th>
+                <th class="py-2 pr-4 text-right font-semibold">RT</th>
+                <th class="py-2 pr-4 text-right font-semibold">수익률</th>
+                <th class="py-2 text-right font-semibold">MDD</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-mono dark:divide-slate-800">
+              <tr><td class="py-2 pr-4">TON/USDT</td><td class="py-2 pr-4 text-right">40</td><td class="py-2 pr-4 text-right">20</td><td class="py-2 pr-4 text-right text-emerald-600 dark:text-emerald-400">+2.48%</td><td class="py-2 text-right text-rose-600 dark:text-rose-400">-1.36%</td></tr>
+              <tr><td class="py-2 pr-4">SUI/USDT</td><td class="py-2 pr-4 text-right">78</td><td class="py-2 pr-4 text-right">39</td><td class="py-2 pr-4 text-right text-emerald-600 dark:text-emerald-400">+3.40%</td><td class="py-2 text-right text-rose-600 dark:text-rose-400">-3.23%</td></tr>
+              <tr><td class="py-2 pr-4">ETH/USDT</td><td class="py-2 pr-4 text-right">50</td><td class="py-2 pr-4 text-right">23</td><td class="py-2 pr-4 text-right text-emerald-600 dark:text-emerald-400">+1.30%</td><td class="py-2 text-right text-rose-600 dark:text-rose-400">-2.89%</td></tr>
+              <tr><td class="py-2 pr-4">SOL/USDT</td><td class="py-2 pr-4 text-right">60</td><td class="py-2 pr-4 text-right">30</td><td class="py-2 pr-4 text-right text-emerald-600 dark:text-emerald-400">+1.94%</td><td class="py-2 text-right text-rose-600 dark:text-rose-400">-3.30%</td></tr>
+              <tr class="border-t-2 border-slate-200 font-semibold dark:border-slate-700">
+                <td class="py-2 pr-4">합계</td><td class="py-2 pr-4 text-right">228</td><td class="py-2 pr-4 text-right">112</td><td class="py-2 pr-4 text-right text-emerald-600 dark:text-emerald-400">+2.28%</td><td class="py-2 text-right">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+          포트폴리오 +57.01 USDT (+79,811 KRW) — universe 16 중 임계 통과 4개만. <strong>BTC/USDT, BTC 페어 8개 모두 reject</strong> —
+          현재 시장이 BTC 대비 메이저 코인 추세 움직임 강한 구간이라 그리드 비친화로 자동 거름.
+        </p>
+      </section>
+
+      <!-- 6. 솔직한 한계 -->
+      <section class="mb-12 rounded-lg border-l-4 border-amber-400 bg-amber-50/60 p-6 dark:border-amber-500/60 dark:bg-amber-500/5">
+        <h2 class="mb-3 text-xl font-bold tracking-tight text-amber-900 dark:text-amber-200">6. 솔직한 한계</h2>
+        <ul class="space-y-2 text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+          <li><strong>+2.28%는 30일 한 구간 결과.</strong> 다른 시장 상태에서는 0이나 음수도 충분히 가능.</li>
+          <li><strong>OHLCV 시뮬은 호가창·체결 순서·latency를 모름.</strong> 실전 결과 ≠ 백테스트 결과.</li>
+          <li><strong>0.1% 이상 갭을 한 거래에서 잡는 건 현실에서 어려움.</strong> 양쪽 수수료 합 0.25%(테이커-테이커)가 본전. 일반 시장에선 거의 안 열림.</li>
+          <li><strong>현재 코드는 백테스트 전용.</strong> 페이퍼/실전을 얹으려면 어댑터 분리 필요.</li>
+          <li><strong>Risk Layer가 없음.</strong> 일일 손실 한도·drawdown 가드·kill switch 모두 미구현. 자산 들어가기 전 필수.</li>
+        </ul>
+      </section>
+
+      <!-- 7. 앞으로 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">7. 앞으로의 방향</h2>
+        <ol class="space-y-3">
+          <li class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-mono text-slate-500 dark:text-slate-400">Phase A · 1~2주</p>
+            <h3 class="font-semibold">어댑터 추상화</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              `DataSource` / `ExchangeAdapter` / `Strategy` / `Clock` 인터페이스. 백테/페이퍼/실전이 같은 코어 + 다른 어댑터.
+            </p>
+          </li>
+          <li class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-mono text-slate-500 dark:text-slate-400">Phase B · 1주</p>
+            <h3 class="font-semibold">Risk + Persistence</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              `Risk.check()` 코어 게이트, SQLite로 trades/positions/orders 영속, 재시작 시 거래소 ↔ DB reconcile.
+            </p>
+          </li>
+          <li class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-mono text-slate-500 dark:text-slate-400">Phase C · 1~2주</p>
+            <h3 class="font-semibold">페이퍼 트레이딩</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              `LiveSource(WebSocket)` + `SimulatedExchange`. 라이브 데이터로 가상 매매. 호가창 캡처는 한국 거래소
+              tick 데이터 자산도 같이 누적.
+            </p>
+          </li>
+          <li class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-mono text-slate-500 dark:text-slate-400">Phase D · 1주</p>
+            <h3 class="font-semibold">Observability + 운영</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              structured log, Slack 알람, 실시간 대시보드, systemd graceful shutdown.
+            </p>
+          </li>
+          <li class="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-mono text-slate-500 dark:text-slate-400">Phase E · 2~4주</p>
+            <h3 class="font-semibold">소액 실전</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              10~50만 원으로 시작. API 키는 매매 권한만 + IP 화이트리스트 + 출금 영구 OFF.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 8. 운영 원칙 -->
+      <section class="mb-12">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">8. 운영 원칙 (잠금)</h2>
+        <ul class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+          <li>🔐 <strong>API 키 권한 최소화</strong>: 출금 OFF, IP 화이트리스트, 매매·잔고만.</li>
+          <li>🚫 <strong>폴백/바이패스 금지</strong>: fail-fast가 기본. 잘못된 입력은 즉시 ValueError.</li>
+          <li>🧪 <strong>테스트 없는 변경 금지</strong>: 코어/risk/execution은 단위 테스트로 잠금.</li>
+          <li>📜 <strong>모든 산출물에 provenance</strong>: git_commit + dirty flag + 데이터 hash + fetch 시각.</li>
+          <li>🐢 <strong>실전 진입은 점진적</strong>: 백테 → 페이퍼(1주+ 무결) → 소액(10만) → 점진 확대.</li>
+        </ul>
+      </section>
+
+      <!-- Footer -->
+      <footer class="mt-16 border-t border-slate-200 pt-8 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <p>
+          작성: 세나 · 작업: 세나 + 브렌 핑퐁 ·
+          <a href="https://github.com/Variel/qyuni" class="underline decoration-dotted underline-offset-4 hover:text-indigo-600 dark:hover:text-indigo-400">Variel/qyuni</a>
+          · 마지막 커밋
+          <code class="font-mono">a88954a</code>
+        </p>
+        <p class="mt-2">
+          이 보고서는 첫 사이클의 합의·산출물·다음 단계를 한 페이지로 압축한 스냅샷이에요. 다음 사이클(Phase A 어댑터 추상화)에서 이 보고서가 갱신되거나 분리될 수 있어요.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
