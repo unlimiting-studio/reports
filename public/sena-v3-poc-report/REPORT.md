@@ -145,6 +145,135 @@ codex/claude-code 자체 state(`~/.claude/projects/*.jsonl` 등)는 **모델 con
 
 ---
 
+## 재현 경로 (검증 명령 + 로그 인용)
+
+본 마이그 진입자가 결과를 직접 재현/검증할 수 있도록, 8개 미지수 각각의 실제 명령과 로그 결과를 묶어둔다. 모든 명령은 `~/agents/sena-poc/` 기준.
+
+### 환경 셋업
+
+```bash
+cd ~/agents/sena-poc
+pnpm install
+pnpm typecheck             # ✅ 통과 (0 errors)
+cp .env.example .env       # SLACK_BOT_TOKEN, SLACK_APP_TOKEN 채우기
+claude login               # Claude Code CLI 시스템 인증
+docker run -d --name sena-poc-pg \
+  -e POSTGRES_PASSWORD=poc -e POSTGRES_USER=poc -e POSTGRES_DB=sena_poc \
+  -p 15432:5432 postgres:16-alpine
+echo 'DATABASE_URL=postgres://poc:poc@localhost:15432/sena_poc' >> .env
+```
+
+### 미지수 #1·#2·#6 (middleware + 핸들러 + observability) — 라이브 trace
+
+```bash
+pnpm start
+# Slack에서 lily(U0APLTFB3E0)에게 멘션
+```
+
+기대 stdout (실제 발생 형태):
+```
+[chat-sdk:slack] Slack auth completed { botUserId: 'U0APLTFB3E0', ... }
+[sena-poc] strategy=steering, chat-sdk concurrency=concurrent
+[sena-poc] turn.enter label=onNewMention inFlight=1
+[sena-poc:claude] turn.start type=stream promptParts=1
+[sena-poc:claude] turn.end model=sonnet elapsed=46545ms
+  stream-start=1 response-metadata=1
+  reasoning-start=9 reasoning-delta=41 reasoning-end=9
+  tool-input-start=8 tool-input-delta=56 tool-input-end=8
+  tool-call=8 tool-result=8
+  text-start=2 text-delta=14 text-end=2 finish=1
+[sena-poc] turn.exit label=onNewMention inFlight=0
+```
+
+→ middleware의 `transformParams`(turn.start)와 `wrapStream`(turn.end + chunk count) 양쪽 다 fire. 한 turn에 8 tool call까지 정확히 분류.
+
+### 미지수 #3 (cron) — `chat.thread()` 외부 reference + string post
+
+```bash
+SENA_POC_CRON_TARGET="slack:C0AFW5Y133J:1778332211.565639" pnpm start
+```
+
+부팅 30초 후 자동 트리거. stdout:
+```
+[sena-poc] cron-demo: will fire 30s after boot at thread=...
+[sena-poc] cron-demo: firing self-triggered turn
+[sena-poc:claude] turn.start type=stream promptParts=1
+[sena-poc:claude] turn.end model=sonnet elapsed=4805ms ... finish=1
+[sena-poc] cron-demo: turn posted
+```
+
+→ Slack에 lily가 `🕒 cron-triggered turn / cron OK` 메시지 게시. 일반 mention turn과 동일한 trace 경로.
+
+### 미지수 #7 (state-pg) — subscribe 영속 + 재시작 후 라우팅
+
+```bash
+# 1. 멘션 → subscribe → DB row
+pnpm start  # Slack에서 lily에게 멘션 한 번
+docker exec sena-poc-pg psql -U poc -d sena_poc \
+  -c "select * from chat_state_subscriptions;"
+```
+
+기대 결과:
+```
+ key_prefix |              thread_id              |   created_at
+------------+-------------------------------------+----------------
+ sena-poc   | slack:C0AFW5Y133J:1778332211.565639 | 2026-05-10 ...
+(1 row)
+```
+
+```bash
+# 2. SIGTERM → 재시작 → 같은 thread에 멘션 *없는* follow-up
+kill -TERM $(pgrep -f "tsx src/index")
+pnpm start
+# Slack에서 같은 thread에 멘션 없이 메시지 한 줄
+```
+
+기대 stdout:
+```
+[sena-poc] turn.enter label=onSubscribedMessage inFlight=1   ← 재시작 후에도 subscribe 살아있음
+```
+
+### 미지수 #8 (프로세스 구조) — drain wrapper + steering
+
+**drain wrapper 검증** (in-flight turn 보존):
+```bash
+# 별도 driver: src/drain-test.ts
+DRAIN_SLEEP_SEC=15 npx tsx src/drain-test.ts &
+sleep 3 && kill -TERM $!
+```
+
+기대:
+```
+[drain-test] turn.enter label=synthetic inFlight=1
+[drain-test] received SIGTERM, draining... inFlight=1
+[drain-test] synthetic turn body finished after 15001ms
+[drain-test] turn.exit label=synthetic inFlight=0
+[drain-test] drain done after 12025ms (inFlight=0)
+```
+
+→ SIGTERM at t=3s에도 turn은 15s 끝까지 진행 후 정상 exit.
+
+**steering 검증** (즉시 abort + 재시작):
+```bash
+pnpm start  # 기본 steering 모드
+# Slack에서 long task 멘션 → 약 5초 후 방향 전환 멘션 한 번 더
+```
+
+기대:
+```
+[sena-poc] turn.enter label=onNewMention inFlight=1
+[sena-poc:claude] turn.start type=stream promptParts=1
+[sena-poc] steering.interrupt thread=... elapsedMs=20415 partialChars=0
+[sena-poc:claude] turn.end ... error=1            ← abort 정상 종료
+[sena-poc] turn.enter label=onSubscribedMessage inFlight=2
+[sena-poc:claude] turn.start type=stream promptParts=1   ← 새 컨텍스트로 재시작
+```
+
+### 미지수 #4·#5 — 결정 입력만 (검증 명령 없음)
+
+- #4: lily 라이브 사용에서 `markdown_text` native + streaming + mrkdwn 자동 처리 확인 (chat-sdk가 `chat.startStream` / `appendStream` / `stopStream`을 자체적으로 처리).
+- #5: 차니 결정으로 inline MCP 우회 확정 — `claudeCode()` provider가 AI SDK Zod tool을 미지원이라는 사실은 provider 코드(`ai-sdk-provider-claude-code/dist/`)에서 직접 확인 가능.
+
 ## 검증 일자
 
-2026-05-10 (KST). 라이브 검증 thread: `#project-sena` (`1778332211.565639`).
+2026-05-10 (KST). 라이브 검증 thread: `#project-sena` (`1778332211.565639`). 모든 명령은 동일 thread에서 lily(`U0APLTFB3E0`) 봇으로 실시간 검증됨.

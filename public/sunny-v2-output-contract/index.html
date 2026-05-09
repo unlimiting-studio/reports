@@ -287,11 +287,11 @@ stateDiagram-v2
   state "Web Client · LocalTurnDetector" as Client {
     direction LR
     [*] --> SILENT
-    SILENT --> CAPTURING : speech_start
-    CAPTURING --> SILENT : speech_end [empty]
-    CAPTURING --> SETTLING : speech_end [content]
-    SETTLING --> CAPTURING : speech_start [resumed]
-    SETTLING --> SILENT : settle 1s
+    SILENT --> CAPTURING : speech_start · TEN VAD
+    CAPTURING --> SILENT : speech_end [empty] · TEN VAD
+    CAPTURING --> SETTLING : speech_end [content] · TEN VAD
+    SETTLING --> CAPTURING : speech_start [resumed] · TEN VAD
+    SETTLING --> SILENT : settle 1s · Detector timer
   }
 
   state "Gateway · SessionRuntime" as Gateway {
@@ -302,12 +302,12 @@ stateDiagram-v2
     AGENT_THINKING --> AGENT_SPEAKING : phrase.audio_ready
     AGENT_THINKING --> LISTENING : generation.discard
     AGENT_SPEAKING --> LISTENING : playback.all_ended
-    AGENT_SPEAKING --> INTERRUPTING : interrupt.committed
-    INTERRUPTING --> LISTENING : abort.complete
+    AGENT_SPEAKING --> INTERRUPTING : interrupt.committed · meaningful_final
+    INTERRUPTING --> LISTENING : abort.complete · AbortCoordinator
     AGENT_SPEAKING --> AGENT_SPEAKING : turn.committed [ignored]
   }
 
-  SETTLING --> LISTENING : turn.commit
+  SETTLING --> LISTENING : turn.commit · Detector dispatch
         </div>
 
         <!-- 이벤트 트리거 표 -->
@@ -358,13 +358,40 @@ stateDiagram-v2
                   </td>
                   <td class="py-3">CAPTURING → SETTLING 진입 시 켜둔 1초 타이머가 만료되면 turn 확정. 호출어 직후 첫 명령은 <code class="text-amber-300">FRESH_WAKE_SETTLE_DELAY_MS=250ms</code>로 더 빠르게 끊음(line 10).</td>
                 </tr>
-                <tr class="align-top">
+                <tr class="border-b border-slate-800/50 align-top">
                   <td class="py-3 pr-4 font-mono text-pink-300">turn.commit</td>
                   <td class="py-3 pr-4">
                     <div class="font-bold text-slate-200">LocalTurnDetector → Gateway</div>
                     <div class="text-xs text-slate-500">local-turn-detector.ts:136 · canDispatchCommit</div>
                   </td>
-                  <td class="py-3">settle 만료 후 dispatch 게이트(<code class="text-slate-400">gatewayState ∉ {AGENT_SPEAKING, INTERRUPTING}</code>) 통과 시 Gateway로 송신. 두 머신을 잇는 유일한 cross-arrow. Agent가 말하는 동안 들어온 turn은 큐에 머물다 LISTENING 복귀 시 flush.</td>
+                  <td class="py-3">settle 만료 후 dispatch 게이트(<code class="text-slate-400">gatewayState ∉ {AGENT_SPEAKING, INTERRUPTING}</code>) 통과 시 Gateway로 송신. 두 머신을 잇는 cross-arrow 중 하나. Agent가 말하는 동안 들어온 turn은 큐에 머물다 LISTENING 복귀 시 flush.</td>
+                </tr>
+                <tr class="border-b border-slate-800/50 align-top">
+                  <td class="py-3 pr-4 font-mono text-amber-300">interrupt.request</td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">LocalInterruptController → Gateway</div>
+                    <div class="text-xs text-slate-500">runtime/local-interrupt-controller.ts</div>
+                  </td>
+                  <td class="py-3">
+                    AGENT_SPEAKING / phrase 큐잉 / playback 활성 중에만 candidate를 연다(<code class="text-slate-400">canEvaluateInterrupts()</code>).<br>
+                    <strong>candidate 트리거</strong>: TEN VAD <code>speech_start</code>(<code class="text-cyan-300">'vad'</code>) 또는 Soniox non-final 토큰 도착(<code class="text-cyan-300">'stt_non_final'</code>).<br>
+                    <strong>발사 조건</strong>: candidate 연 뒤 <code class="text-amber-300">800ms</code>(<code>CANDIDATE_EXPIRY_MS</code>) 안에 STT final 도착 + trim 결과 비어있지 않음.<br>
+                    <strong>즉시 발사</strong>: 호출어 인정(<code>'써니야'</code>) 또는 <code>onForcedSttFinal()</code>은 candidate 없이 바로 송신.
+                  </td>
+                </tr>
+                <tr class="align-top">
+                  <td class="py-3 pr-4 font-mono text-pink-300">interrupt.committed</td>
+                  <td class="py-3 pr-4">
+                    <div class="font-bold text-slate-200">Gateway · InterruptController</div>
+                    <div class="text-xs text-slate-500">interrupt/interrupt-controller.ts:40 · cue-words.ts</div>
+                  </td>
+                  <td class="py-3">
+                    Gateway가 <code>interrupt.request</code>를 받아 EventBus에 <code>INTERRUPT_REQUESTED</code>를 흘리면 InterruptController가 받아 두 가지 게이트를 본다.<br>
+                    ① 현재 상태가 <code class="text-pink-300">AGENT_SPEAKING</code>이어야 한다(아니면 무시).<br>
+                    ② <code>isMeaningfulFinal(finalText)</code> = 공백·구두점 제거 후 lexical 글자 ≥ 2자(1자 감탄사·필러 차단).<br>
+                    둘 다 통과하면 <code>GENERATION_DISCARD</code> + 재생 완료된 phrase를 history에 commit한 뒤 <code>INTERRUPT_COMMITTED</code>를 발행 → 이게 <code>AGENT_SPEAKING → INTERRUPTING</code> 화살표.<br>
+                    이어서 AbortCoordinator가 agent / TTS / playback 셋을 병렬 abort하고 <code>ABORT_COMPLETE</code> → <code>INTERRUPTING → LISTENING</code>.
+                  </td>
                 </tr>
               </tbody>
             </table>
