@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sena-ai v3 — PRD</title>
+    <meta
+      name="description"
+      content="codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스. ai-sdk + chat-sdk 위에 운영 보조 인프라만 얹는 sena-ai v3의 요구사항 문서."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      .prose-doc h2 {
+        @apply mt-16 mb-4 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h3 {
+        @apply mt-10 mb-3 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc p {
+        @apply text-[15px] leading-7 text-slate-700 dark:text-slate-300;
+      }
+      .prose-doc ul {
+        @apply my-4 ml-5 list-disc space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc ol {
+        @apply my-4 ml-5 list-decimal space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc strong {
+        @apply font-semibold text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc code {
+        @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800 dark:bg-slate-800 dark:text-slate-200;
+      }
+      .prose-doc table {
+        @apply my-6 w-full border-collapse text-[14px];
+      }
+      .prose-doc th {
+        @apply border-b border-slate-300 bg-slate-50 px-3 py-2 text-left font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
+      }
+      .prose-doc td {
+        @apply border-b border-slate-200 px-3 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-300;
+      }
+      .prose-doc blockquote {
+        @apply my-6 border-l-2 border-indigo-500 bg-indigo-50/50 px-5 py-4 text-[15px] italic text-slate-800 dark:bg-indigo-500/10 dark:text-slate-200;
+      }
+      .anchor {
+        @apply -ml-6 pr-2 text-slate-300 opacity-0 transition-opacity hover:text-indigo-500 dark:text-slate-600;
+      }
+      h2:hover .anchor,
+      h3:hover .anchor {
+        @apply opacity-100;
+      }
+      .mermaid {
+        @apply my-6 flex justify-center overflow-x-auto rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900;
+      }
+      .pill {
+        @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+      }
+      .pill-draft {
+        @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-500/10 dark:text-amber-300;
+      }
+      .pill-meta {
+        @apply border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <header
+      class="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white py-12 dark:border-slate-800 dark:from-slate-900 dark:to-slate-950"
+    >
+      <div class="mx-auto max-w-3xl px-6">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span class="pill pill-meta">PRD</span>
+          <span class="pill pill-draft">
+            <svg class="size-1.5 fill-amber-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
+            Draft · 2026-05-09
+          </span>
+          <span class="pill pill-meta">unlimiting-studio</span>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          sena-ai v3
+        </h1>
+        <p class="mt-3 text-lg text-slate-600 dark:text-slate-400">
+          codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스를,<br
+            class="hidden sm:block"
+          />
+          ai-sdk와 chat-sdk 위에 운영 보조 인프라만 얹어 다시 만든다.
+        </p>
+        <dl class="mt-8 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">작성</dt>
+            <dd class="text-slate-800 dark:text-slate-200">세나 (Channy 의뢰)</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">관련 채널</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>#project-sena</code> (C0AFW5Y133J)
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">리포지토리</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>Variel/sena</code> → <code>unlimiting-studio/sena-ai</code> <code>v3</code> orphan
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">대체 대상</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>@sena-ai/*</code> 모노레포 8개 패키지
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="./PRD.md"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg
+              class="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            원본 PRD.md
+          </a>
+          <a
+            href="https://github.com/unlimiting-studio/sena-ai"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.73-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.16 1.18a10.92 10.92 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.05.78 2.13v3.16c0 .31.21.68.79.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+              />
+            </svg>
+            sena-ai 리포
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-6 py-12">
+      <nav
+        class="mb-12 rounded-lg border border-slate-200 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/50"
+      >
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          목차
+        </p>
+        <ol class="grid gap-1 text-sm sm:grid-cols-2">
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#background">1. 배경</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#vision">2. 목적 / 비전</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#users">3. 사용자</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#scenarios">4. 핵심 시나리오</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#architecture">시각화: 아키텍처</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#fr">5. 기능 요구사항</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#nfr">6. 비기능 요구사항</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#packages">시각화: 패키지 구조</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#out-of-scope">7. 범위 외</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#success">8. 성공 기준</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#tradeoff">시각화: v2 vs v3</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#risks">9. 잃는 것 / 검증 필요</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#timeline">시각화: 마이그 타임라인</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#schedule">10. 일정</a></li>
+          <li><a class="text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400" href="#pending">11. 후속 결정</a></li>
+        </ol>
+      </nav>
+
+      <article class="prose-doc">
+        <section id="background">
+          <h2>
+            1. 배경 — 왜 v3가 필요한가
+            <a class="anchor" href="#background">#</a>
+          </h2>
+          <p>
+            v2는 codex CLI와 Claude Agent SDK를 워커 프로세스로 직접 fork하고, Slack 통신을 자체
+            패키지(<code>@sena-ai/connector-slack</code>, <code>@sena-ai/slack-mrkdwn</code>,
+            <code>@sena-ai/tools-slack</code>)로 처리해 왔다. 이 구조 위에서 안정적으로 sena, lumie,
+            sooki, 브렌 네 에이전트가 운영되고 있지만, 최근 6주 채널 메모를 분류해 보면 디버깅 시간의
+            큰 덩어리가 다음 네 영역에 몰린다.
+          </p>
+          <ol>
+            <li>
+              <strong>Slack 디테일</strong> — mrkdwn 이중 꺾쇠, <code>parse:'none'</code>과
+              <code>unfurl_links</code>의 양립 불가, <code>chat.startStream</code> 기반 streaming
+              메시지의 unfurl 비활성화, archive permalink labeling, 1.5초 throttle trailing flush,
+              <code>app_mention</code>/<code>message</code> dedup race.
+            </li>
+            <li>
+              <strong>워커 / IPC / restart</strong> — <code>restart_agent</code> IPC 채널 race
+              condition, drain 타임아웃, self-restart 데드락.
+            </li>
+            <li>
+              <strong>모노레포 publish 운영</strong> — <code>workspace:*</code>가 publish 시점에 exact
+              pin으로 굳는 특성 때문에 core 수정 시 cli 동반 bump가 강제, 마이너 버전 통일 규칙,
+              <code>pnpm publish</code> 강제.
+            </li>
+            <li>
+              <strong>다중 에이전트 동기화</strong> — 한 패키지를 수정하면 4개 에이전트(또는 6개)
+              전부 publish → install → restart 체인을 돌려야 한다.
+            </li>
+          </ol>
+          <p>
+            (2)·(3)·(4)는 sena 자체가 짠 추상화 비용이고, (1)은 우리 Slack 구현이 Slack의 고유 동작에
+            충분히 잘 맞춰지지 못해서 생긴 비용이다.
+          </p>
+          <p>
+            community 생태계 — 특히 Vercel ai-sdk와 chat-sdk, Ben Vargas의
+            <code>ai-sdk-provider-claude-code</code>/<code>codex-cli</code> — 가 이 덩어리들을 대부분
+            흡수해 줄 수 있다는 게 v3의 출발점이다. v3는 sena의 정체성("codex CLI + Claude Code를
+            에이전트 하네스로 쓰는 엔진")을 그대로 두면서, 그 위에서
+            <strong>우리가 직접 짜는 코드의 표면적을 줄이는 것</strong>을 목표로 한다.
+          </p>
+        </section>
+
+        <section id="vision">
+          <h2>2. 목적 / 비전 <a class="anchor" href="#vision">#</a></h2>
+          <blockquote>
+            codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스를,
+            ai-sdk와 chat-sdk 위에 운영 보조 인프라(cron · hook · channel context · MCP ·
+            multi-connector)만 얹어 만든다.
+          </blockquote>
+          <p>
+            핵심 의존성은 외부 라이브러리에 맡기고, 우리는 운영 정책과 멀티 에이전트 배포 패턴만
+            책임진다.
+          </p>
+        </section>
+
+        <section id="users">
+          <h2>3. 사용자 <a class="anchor" href="#users">#</a></h2>
+          <ul>
+            <li>
+              <strong>1차 사용자</strong> — unlimiting-studio 내부에서 운영 중인 에이전트들. sena,
+              lumie, sooki, 브렌. 각 에이전트의 운영자(Channy 본인 + 협업 인간)와 v3 위에서 새
+              에이전트를 만들 후속 빌더.
+            </li>
+            <li>
+              <strong>2차 사용자</strong> — v2 모노레포 오픈소스 준비 흐름(2026-04-06)을 잇는 외부
+              빌더. 자기 codex/Claude Code 워크플로우를 Slack 봇으로 노출하고 싶은 개인/팀.
+            </li>
+          </ul>
+        </section>
+
+        <section id="scenarios">
+          <h2>4. 핵심 시나리오 <a class="anchor" href="#scenarios">#</a></h2>
+          <ol>
+            <li>
+              <strong>Slack 트리거 응답.</strong> 사용자가 채널에서 봇을 멘션하거나 봇이 참여 중인
+              스레드에 메시지를 남기면, 에이전트가 채널 컨텍스트와 메모리를 읽고 codex 또는 Claude
+              Code 한 턴을 돌려 응답한다. 응답은 streaming preview로 점진 표시되며 최종 메시지는
+              unfurl·table·mrkdwn이 보존된다.
+            </li>
+            <li>
+              <strong>정기 자동 작업.</strong> 운영자가 cron 표현으로 정의한 스케줄(하트비트, 모닝
+              브리핑, 회고 등)이 시각마다 발화하여 에이전트의 한 턴을 비대화 트리거로 실행한다.
+              prompt는 inline 문자열 또는 외부 파일 참조 둘 다 지원.
+            </li>
+            <li>
+              <strong>외부 시스템 연동.</strong> Sunny Gateway 같은 외부 시스템의 WebSocket relay에서
+              들어오는 turn 요청을 받아, 같은 에이전트 인스턴스가 일반 Slack 응답과 동일하게
+              처리한다. 시스템마다 별도 system prompt 합성이 가능하다.
+            </li>
+            <li>
+              <strong>다중 connector 동시 운영.</strong> 한 에이전트 프로세스 안에서 Slack과 Sunny가
+              동시에 살아 있고, 각자 독립된 trigger 규칙·system prompt·세션 ID를 갖는다.
+            </li>
+            <li>
+              <strong>MCP 기반 도구 통합.</strong> Claude Code의 <code>__native__</code> MCP, 사용자
+              정의 MCP 서버, 그리고 Zod 기반 inline tool(우리가 정의하는 함수)이 모두 한 turn 안에서
+              호출 가능하다.
+            </li>
+          </ol>
+        </section>
+
+        <section id="architecture">
+          <h2>시각화 — 아키텍처 레이어 <a class="anchor" href="#architecture">#</a></h2>
+          <p>
+            트리거 → adapter → middleware → provider → 엔진 순으로 한 방향 흐름. 회색 굵은 박스는 외부
+            라이브러리, 노란 박스는 우리가 직접 짜는 코드, 파란 박스는 외부 엔진(codex CLI, Claude
+            Code).
+          </p>
+          <pre class="mermaid">
+flowchart TD
+    classDef ext fill:#f1f5f9,stroke:#94a3b8,stroke-width:2px,color:#0f172a;
+    classDef ours fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#422006;
+    classDef engine fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+
+    subgraph T["트리거"]
+      direction LR
+      slack["Slack<br/>mention · thread · reaction"]
+      cron["cronSchedule · heartbeat"]
+      sunny["Sunny Gateway WS"]
+    end
+
+    subgraph A["chat-sdk 어댑터"]
+      direction LR
+      slackA["@chat-adapter/slack"]
+      sunnyA["Sunny adapter (신규 작성)"]
+    end
+
+    subgraph M["middleware (우리 코드)"]
+      direction TB
+      ctx["channelContext<br/>channels.json + per-channel memory"]
+      hooks["TurnStart / TurnEnd / system 합성"]
+      session["file session store"]
+    end
+
+    subgraph S["ai-sdk LanguageModel"]
+      direction LR
+      ai["streamText / wrapLanguageModel"]
+    end
+
+    subgraph P["provider"]
+      direction LR
+      cc["ai-sdk-provider-claude-code"]
+      co["ai-sdk-provider-codex-cli"]
+    end
+
+    subgraph E["엔진"]
+      direction LR
+      ccc["Claude Code CLI"]
+      cox["codex CLI"]
+    end
+
+    slack --> slackA
+    sunny --> sunnyA
+    cron -.-> M
+    slackA --> M
+    sunnyA --> M
+    ctx --> hooks
+    session --> hooks
+    hooks --> ai
+    ai --> cc
+    ai --> co
+    cc --> ccc
+    co --> cox
+
+    class slack,cron,sunny ext;
+    class slackA,sunnyA ext;
+    class ai ext;
+    class cc,co ext;
+    class ctx,hooks,session ours;
+    class ccc,cox engine;
+          </pre>
+        </section>
+
+        <section id="fr">
+          <h2>5. 기능 요구사항 (FR) <a class="anchor" href="#fr">#</a></h2>
+          <table>
+            <thead>
+              <tr>
+                <th class="w-16">ID</th>
+                <th class="w-40">영역</th>
+                <th>요구사항</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>FR-1</code></td>
+                <td>LLM provider</td>
+                <td>
+                  <code>ai-sdk-provider-claude-code</code>와 <code>ai-sdk-provider-codex-cli</code>를
+                  통해 두 엔진을 ai-sdk LanguageModel로 노출. 모델 동적 지정(<code>gpt-5.5</code>
+                  같은 신규 모델명) 가능.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-2</code></td>
+                <td>reasoning</td>
+                <td>
+                  claude-code provider의 reasoning effort 옵션을 wrap하여 v2의
+                  <code>reasoningEffort: low | medium | high | max</code> 인터페이스를 보존.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-3</code></td>
+                <td>Slack 통신</td>
+                <td>
+                  <code>chat</code> + Slack 어댑터로 mention · thread · channel · reaction trigger를
+                  모두 처리. trigger filter와 reaction abort 규칙 유지.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-4</code></td>
+                <td>streaming</td>
+                <td>
+                  Slack streaming preview + 최종 unfurl 복원이 v2 수준 이상으로 동작. mrkdwn 이중 꺾쇠
+                  보존, archive permalink 자동 라벨링, table block 지원.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-5</code></td>
+                <td>Sunny Gateway</td>
+                <td>
+                  chat-sdk 어댑터 인터페이스를 따르는 Sunny adapter를 신규 작성. 음성 응답
+                  프로토콜(<code>turn.metrics</code>, binary frame 등)을 보존.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-6</code></td>
+                <td>cron / heartbeat</td>
+                <td>
+                  <code>cronSchedule()</code>과 <code>heartbeat()</code> API 유지. prompt는 inline
+                  string 또는 <code>{ file }</code> 둘 다 지원.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-7</code></td>
+                <td>hooks</td>
+                <td>
+                  TurnStart / TurnEnd / system 합성을 ai-sdk middleware
+                  (<code>wrapLanguageModel</code>) + chat-sdk middleware로 매핑. hook 함수 시그니처는
+                  마이그레이션 가이드와 함께 변경 가능.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-8</code></td>
+                <td>channel context</td>
+                <td>
+                  <code>channels.json</code>과 채널별 <code>memory.md</code>를 turn 시작 시 자동 주입.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-9</code></td>
+                <td>MCP</td>
+                <td>
+                  MCP 서버를 1급 시민으로 지원. v2의 <code>__native__</code> 패턴, owned localhost
+                  bridge, Stream closed 자동 reset 규칙은 유지하거나 그에 준하는 안정성 확보.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-10</code></td>
+                <td>inline tool</td>
+                <td>
+                  <code>defineTool()</code> (Zod 스키마) 패턴을 MCP server 우회로 보존. 기존 v2 hook
+                  코드의 마이그레이션 비용을 최소화.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-11</code></td>
+                <td>session 영속성</td>
+                <td>
+                  <code>.sessions.json</code> file session store 유지. 단일 프로세스 재시작 후에도
+                  conversationId ↔ session 매핑이 살아남는다.
+                </td>
+              </tr>
+              <tr>
+                <td><code>FR-12</code></td>
+                <td>multi-connector</td>
+                <td>
+                  한 에이전트 프로세스에서 Slack과 Sunny 어댑터가 동시에 active. trigger마다 system
+                  prompt 다르게 주입 가능.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="nfr">
+          <h2>6. 비기능 요구사항 (NFR) <a class="anchor" href="#nfr">#</a></h2>
+          <ul>
+            <li>
+              <strong>NFR-1 단일 프로세스.</strong> worker fork / IPC / orchestrator-worker 분리
+              폐기. 단일 Node.js 프로세스로 실행하고, 외부 process manager(pm2 또는 systemd)가
+              lifecycle을 관리한다.
+            </li>
+            <li>
+              <strong>NFR-2 fail-fast.</strong> 폴백 / 바이패스 금지(2026-04-14 차니 지시). 초기화
+              실패는 즉시 throw하고 프로세스가 죽는 게 정답이다.
+            </li>
+            <li>
+              <strong>NFR-3 외부 의존 우선.</strong> 우리가 직접 짜는 코드는 사용자 정책(channel
+              context, cron, hook, multi-connector orchestration)에 한정한다. Slack 프로토콜
+              디테일과 LLM 통신은 외부 라이브러리에 맡긴다.
+            </li>
+            <li>
+              <strong>NFR-4 오픈소스 양립.</strong> 차니 머신에서 직접 운영되지만, 코드는 오픈소스
+              공개를 전제로 작성한다.
+            </li>
+            <li>
+              <strong>NFR-5 운영 가시성.</strong> v2의 <code>traceLogger</code> 수준 로그를 유지한다.
+              어떤 trigger가 어떤 turn을 일으켰고 어떤 tool이 호출됐는지 단일 stream으로 추적 가능해야
+              한다.
+            </li>
+          </ul>
+        </section>
+
+        <section id="packages">
+          <h2>시각화 — 패키지 구조 변화 <a class="anchor" href="#packages">#</a></h2>
+          <p>
+            v2는 8개의 자체 패키지를 모노레포에서 마이너 버전 통일로 묶어 운영했다. v3는 단일 앱
+            하나가 외부 라이브러리 4개를 조합해 같은 일을 한다. 우리가 publish 책임지는 패키지는 0개로
+            줄어든다 (앱 자체는 publish 안 함).
+          </p>
+          <pre class="mermaid">
+flowchart LR
+    classDef ours fill:#fef9c3,stroke:#ca8a04,color:#422006;
+    classDef ext fill:#f1f5f9,stroke:#94a3b8,color:#0f172a;
+    classDef gone fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,stroke-dasharray: 4 2;
+
+    subgraph V2["v2 — 8 패키지 (모노레포)"]
+      direction TB
+      core["core"]
+      cli["cli"]
+      hooks["hooks"]
+      rc["runtime-claude"]
+      rcx["runtime-codex"]
+      cs["connector-slack"]
+      ts["tools-slack"]
+      sb["slack 번들"]
+    end
+
+    subgraph V3["v3 — 1 앱"]
+      direction TB
+      app["sena 단일 앱<br/>(우리 운영 정책만)"]
+      ext1["ai-sdk"]
+      ext2["chat-sdk + Slack 어댑터"]
+      ext3["ai-sdk-provider-claude-code"]
+      ext4["ai-sdk-provider-codex-cli"]
+      app --> ext1
+      app --> ext2
+      app --> ext3
+      app --> ext4
+    end
+
+    V2 -. "실질 코드 80% 외부로" .-> V3
+
+    class core,cli,hooks,rc,rcx,cs,ts,sb gone;
+    class app ours;
+    class ext1,ext2,ext3,ext4 ext;
+          </pre>
+        </section>
+
+        <section id="out-of-scope">
+          <h2>7. 범위 외 (v3 1차에서 빼는 것) <a class="anchor" href="#out-of-scope">#</a></h2>
+          <ul>
+            <li><strong>sena-platform</strong> (Slack 앱 자동 프로비저닝, CF Workers + D1). 별도 차후 단계에서 다시 본다.</li>
+            <li><strong>분산 멀티 호스트 운영.</strong> v3는 단일 프로세스 가정.</li>
+            <li><strong>Slack/Sunny 외 chat-sdk 어댑터(Discord, Teams, WhatsApp 등).</strong> chat-sdk가 지원하지만 v3 1차에서는 라이브 connector 두 개만 검증한다.</li>
+            <li><strong>자체 LLM API 호출 경로.</strong> ai-sdk-provider 우회로 직접 OpenAI/Anthropic 호출하는 경로는 만들지 않는다.</li>
+          </ul>
+        </section>
+
+        <section id="success">
+          <h2>8. 성공 기준 <a class="anchor" href="#success">#</a></h2>
+          <ul>
+            <li><strong>S-1</strong> sena, lumie, sooki, 브렌 네 에이전트가 v3 위에서 정상 운영된다(현재 v2 기능을 100% 대체).</li>
+            <li>
+              <strong>S-2</strong> v3 마이그 후 6주 동안 채널 메모(<code>#project-sena</code>) 디버그
+              항목 빈도가 v2 직전 6주(2026-03-22 ~ 2026-05-03) 대비 절반 이하.
+            </li>
+            <li>
+              <strong>S-3</strong> Slack 디테일 관련 디버그(parse / mrkdwn / streaming / unfurl)는
+              우리 코드 수정이 아니라 chat-sdk 어댑터 PR 또는 wrapper 패치로만 해결된다.
+            </li>
+            <li><strong>S-4</strong> 외부 빌더 1명이 v3 위에 새 에이전트를 README만 보고 띄울 수 있다.</li>
+          </ul>
+        </section>
+
+        <section id="tradeoff">
+          <h2>시각화 — v2 잃는 것 / v3 얻는 것 <a class="anchor" href="#tradeoff">#</a></h2>
+          <table>
+            <thead>
+              <tr>
+                <th>영역</th>
+                <th>v2 (현재)</th>
+                <th>v3 (목표)</th>
+                <th class="w-32">변화</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Slack mrkdwn / streaming 디테일</td>
+                <td>자체 패키지 3종 (mrkdwn / connector / tools)</td>
+                <td>chat-sdk Slack 어댑터</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">우리 코드 ↓↓↓</span></td>
+              </tr>
+              <tr>
+                <td>워커 fork / IPC / restart</td>
+                <td>자체 orchestrator-worker + SIGUSR2 rolling restart</td>
+                <td>단일 프로세스 + 외부 process manager</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">코드 ↓↓</span></td>
+              </tr>
+              <tr>
+                <td>LLM 통신</td>
+                <td><code>runtime-claude</code> + <code>runtime-codex</code> 자체 SDK 래퍼</td>
+                <td><code>ai-sdk-provider-claude-code</code> / <code>codex-cli</code></td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">코드 ↓↓</span></td>
+              </tr>
+              <tr>
+                <td>패키지 publish 운영</td>
+                <td>8개 패키지, 마이너 버전 통일, cli 동반 bump 강제</td>
+                <td>publish 0개 (앱 자체)</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">운영 ↓↓↓</span></td>
+              </tr>
+              <tr>
+                <td>다중 에이전트 동기화</td>
+                <td>4~6개 에이전트에 publish → install → restart 체인</td>
+                <td>각 에이전트가 외부 의존 직접 업데이트</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">운영 ↓</span></td>
+              </tr>
+              <tr>
+                <td>reasoningEffort 옵션</td>
+                <td>1급 옵션</td>
+                <td>provider wrap 필요</td>
+                <td><span class="font-medium text-amber-700 dark:text-amber-400">보존 (래퍼 1개)</span></td>
+              </tr>
+              <tr>
+                <td>Zod inline tool</td>
+                <td><code>defineTool()</code> 1급</td>
+                <td>MCP server 우회</td>
+                <td><span class="font-medium text-amber-700 dark:text-amber-400">보존 (어댑터)</span></td>
+              </tr>
+              <tr>
+                <td>codex 모델명 자유도</td>
+                <td>full</td>
+                <td>provider 사전 정의</td>
+                <td><span class="font-medium text-rose-700 dark:text-rose-400">upstream PR 필요</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="risks">
+          <h2>9. 잃는 것 / 검증 필요한 것 <a class="anchor" href="#risks">#</a></h2>
+          <table>
+            <thead>
+              <tr>
+                <th class="w-1/3">항목</th>
+                <th class="w-1/4">영향</th>
+                <th>대응</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>claude-code provider의 Zod tool 미지원</td>
+                <td>v2 <code>defineTool()</code> 코드 손봐야 함</td>
+                <td>MCP server 우회. <code>inline-mcp-bridge</code> 노하우로 어댑터 작성.</td>
+              </tr>
+              <tr>
+                <td>claude-code provider의 reasoningEffort 미지원</td>
+                <td>옵션이 noop</td>
+                <td>LanguageModel wrap으로 우리 옵션을 provider config에 떨어뜨림 (또는 upstream PR).</td>
+              </tr>
+              <tr>
+                <td>codex-cli provider 모델명 사전 정의</td>
+                <td><code>gpt-5.5</code> 같은 동적 모델명 사용 불가</td>
+                <td>upstream PR 또는 wrapper 모델 alias.</td>
+              </tr>
+              <tr>
+                <td>chat-sdk Slack 어댑터의 디테일 커버 범위 미지</td>
+                <td>mrkdwn / unfurl / streaming 회귀 가능</td>
+                <td>1차 마이그 직후 전수조사 1회 + 미커버 항목 wrapper 또는 upstream PR.</td>
+              </tr>
+              <tr>
+                <td>sena 고유 인프라(cron / hook / channel) 매핑</td>
+                <td>ai-sdk middleware 패러다임에 1:1 매핑이 안 됨</td>
+                <td>hook을 LanguageModel middleware와 chat-sdk middleware 두 레이어로 나누는 설계 결정 별도 명시.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="timeline">
+          <h2>시각화 — 마이그 타임라인 <a class="anchor" href="#timeline">#</a></h2>
+          <p>오늘(5/9) PRD 호스팅을 시작점으로, 6주 안에 본 에이전트 4개까지 마이그 + 측정 시작.</p>
+          <pre class="mermaid">
+gantt
+    title sena-ai v3 마이그 일정 (1차 가설)
+    dateFormat YYYY-MM-DD
+    axisFormat %m/%d
+
+    section 문서
+    PRD 확정·호스팅           :done, prd, 2026-05-09, 1d
+    SPEC + 분할 스펙          :spec, 2026-05-10, 4d
+
+    section 프레임워크
+    베어본 + PoC 에이전트 1개 :poc, 2026-05-14, 7d
+    Slack 디테일 전수조사     :slack, 2026-05-21, 3d
+    Sunny adapter             :sunny, 2026-05-24, 4d
+
+    section 본 마이그
+    sena                      :s, 2026-05-28, 4d
+    브렌                       :b, after s, 3d
+    lumie                     :l, after b, 3d
+    sooki                     :sk, after l, 4d
+
+    section 정리
+    v2 deprecation            :dep, 2026-06-11, 7d
+    6주 측정 시작              :meas, 2026-06-18, 7d
+          </pre>
+        </section>
+
+        <section id="schedule">
+          <h2>10. 일정 (1차 가설) <a class="anchor" href="#schedule">#</a></h2>
+          <ul>
+            <li><strong>5/9 (오늘)</strong> PRD 확정, <code>unlimiting-studio/reports</code>에 호스팅.</li>
+            <li><strong>5/10 ~ 5/13</strong> sena-ai 새 <code>v3</code> orphan branch에 SPEC.md + 컴포넌트별 분할 스펙 작성.</li>
+            <li><strong>5/14 ~ 5/20</strong> 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 마이그.</li>
+            <li><strong>5/21 ~ 5/27</strong> Slack 디테일 전수조사, 미커버 항목 패치, Sunny adapter 마이그.</li>
+            <li><strong>5/28 ~ 6/10</strong> 본 에이전트 순차 마이그 (sena → 브렌 → lumie → sooki).</li>
+            <li><strong>6/11 ~ 6/24</strong> v2 deprecation, 6주 디버그 항목 빈도 측정 시작.</li>
+          </ul>
+        </section>
+
+        <section id="pending">
+          <h2>11. 후속 의사결정 포인트 <a class="anchor" href="#pending">#</a></h2>
+          <ul>
+            <li>
+              <strong>분담.</strong> 세나가 마이그 순서·잃는 항목·sena 고유 인프라 매핑 책임. 브렌이
+              <code>ai-sdk-provider-*</code> 코드 + chat-sdk Slack 어댑터 직접 까서 우리 기능 매트릭스
+              대비 커버 검증. <span class="text-amber-700 dark:text-amber-400">차니 confirm 대기.</span>
+            </li>
+            <li>
+              <strong>sena-platform의 v3 흡수 시점.</strong> 1차 마이그 완료 후 별도 라운드.
+            </li>
+            <li>
+              <strong>v2 모노레포 history 보존 vs orphan branch 완전 reset.</strong>
+              <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </main>
+
+    <footer
+      class="border-t border-slate-200 bg-slate-50 py-8 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+    >
+      <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6">
+        <div>
+          이 문서는 <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="/">reports.yechanny.workers.dev</a>에 호스팅된 일회성 PRD입니다.
+        </div>
+        <div>
+          최종 수정: 2026-05-09 ·
+          <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="./PRD.md">PRD.md</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: isDark ? "dark" : "neutral",
+        securityLevel: "loose",
+        flowchart: { htmlLabels: true, curve: "basis" },
+        gantt: { axisFormat: "%m/%d" },
+      });
+    </script>
+  </body>
+</html>

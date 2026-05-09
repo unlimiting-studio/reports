@@ -1,0 +1,13 @@
+{
+  "name": "reports",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker for hosting one-off static reports.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

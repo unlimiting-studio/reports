@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>reports — unlimiting-studio</title>
+    <meta name="description" content="일회성 보고서를 모아 두는 정적 사이트." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <div class="mx-auto max-w-3xl px-6 py-16">
+      <header class="mb-12">
+        <h1 class="text-3xl font-bold tracking-tight">reports</h1>
+        <p class="mt-2 text-slate-600 dark:text-slate-400">
+          일회성 보고서를 모아 두는 곳. 새 보고서는
+          <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm dark:bg-slate-800">public/{slug}/</code>
+          폴더로 추가한다.
+        </p>
+      </header>
+
+      <main>
+        <ul class="space-y-4">
+          <li>
+            <a
+              href="/sena-v3-prd/"
+              class="group flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50/30 dark:border-slate-800 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/20"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="mb-1 flex flex-wrap items-center gap-2">
+                  <span
+                    class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-500/10 dark:text-amber-300"
+                  >
+                    PRD · Draft
+                  </span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">2026-05-09</span>
+                </div>
+                <h2
+                  class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-indigo-700 dark:text-slate-100 dark:group-hover:text-indigo-400"
+                >
+                  sena-ai v3 — PRD
+                </h2>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스를,
+                  ai-sdk와 chat-sdk 위에 운영 보조 인프라만 얹어 다시 만든다.
+                </p>
+              </div>
+              <svg
+                class="mt-1 size-5 shrink-0 text-slate-400 transition group-hover:translate-x-1 group-hover:text-indigo-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </a>
+          </li>
+        </ul>
+
+        <div
+          class="mt-12 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+        >
+          새 보고서를 추가하려면
+          <a
+            class="font-medium text-slate-700 underline hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
+            href="https://github.com/unlimiting-studio/reports#새-보고서-추가하기"
+            >README</a
+          >를 참고하세요.
+        </div>
+      </main>
+
+      <footer class="mt-16 border-t border-slate-200 pt-6 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span>
+            <a class="hover:text-indigo-600 dark:hover:text-indigo-400" href="https://github.com/unlimiting-studio/reports">unlimiting-studio/reports</a>
+          </span>
+          <span>Cloudflare Workers · static assets</span>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

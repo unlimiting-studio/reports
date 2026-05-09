@@ -1,0 +1,8 @@
+name = "reports"
+compatibility_date = "2026-05-09"
+
+# 정적 자산만 서빙하는 Worker. main 엔트리 없음.
+# /{slug}/index.html 구조 → /{slug}/ URL로 자동 서빙 (auto-trailing-slash 기본값).
+[assets]
+directory = "./public/"
+not_found_handling = "404-page"
