@@ -75,15 +75,17 @@
       <section class="mb-12">
         <h2 class="mb-4 text-2xl font-bold tracking-tight">1. 시작점 — 무엇을 만들고자 했나</h2>
         <p class="leading-relaxed text-slate-700 dark:text-slate-300">
-          Qyuni의 1차 목표는 <strong>수익 극대화가 아니라 검증 가능한 거래 시스템</strong>이에요. 350만 원은 본격 운용 자본이 아니라
-          <strong>가설 검증·인프라 신뢰도 확보를 위한 학습 시드</strong>로 두고, 단계별로 백테스트 → 페이퍼 → 소액 실전 순서로 자본 노출을 늘려가는 그림.
+          Qyuni의 목표는 명확해요. <strong>소액 시드로 수익을 극대화하는 자동 매매 시스템</strong>. 큰 돈은 시장 자체에 영향을
+          주고받지만, 작은 돈은 가격·거래량에 흔적을 거의 남기지 않아요. 그 이점을 살려서
+          <strong>다양한 전략을 병렬로 돌리고, 작은 수익을 자주 모아 불려가는 방식</strong>으로 접근해요.
         </p>
         <ul class="mt-3 space-y-1.5 text-slate-700 dark:text-slate-300">
-          <li>• <strong>전략 가족</strong>: 차트형 그리드 단일을 첫 칼로. 분~시간 단위 보유, OHLCV로 시뮬 가능, 검증 사이클이 짧음.</li>
-          <li>• <strong>universe</strong>: 고정 N을 박지 않고, 바이낸스 24h quoteVolume 상위에서 동적으로 추출 + 친화도 임계로 거름.</li>
-          <li>• <strong>자본 운용</strong>: 한 심볼에 350만 다 박지 않고, 통과 N에 균등 분할.</li>
-          <li>• <strong>재현성·운영 안전</strong>: 모든 산출물에 git hash + dirty flag + 데이터 sha256 + 거래소 응답 시각. 폴백/바이패스 금지, fail-fast 원칙.</li>
-          <li>• <strong>API 키 정책</strong>: 출금 권한 영구 OFF + IP 화이트리스트 + 매매·잔고만. 평문이어도 키 자체로 자산을 빼갈 수 없게 잠금.</li>
+          <li>• <strong>작은 발자국</strong>: 350만 원 시드를 한 거래소·한 심볼에 다 박지 않고, 여러 페어에 나눠서 거래량·가격에 미치는 자기영향을 최소화.</li>
+          <li>• <strong>병렬 전략</strong>: 한 전략에 의존하지 않고, 다양한 시장 상태에서 작동하는 전략을 같은 코어 위에 얹어 동시 운용 가능한 구조.</li>
+          <li>• <strong>첫 칼은 차트형 그리드</strong>: 분~시간 단위 보유, OHLCV로 시뮬 가능, 검증 사이클이 짧아서 가장 먼저 닫기 좋음.</li>
+          <li>• <strong>동적 universe</strong>: 바이낸스 24h quoteVolume 상위에서 자동 추출 + 친화도 임계로 거름. 시장 상태가 바뀌면 통과 N도 자연 조절.</li>
+          <li>• <strong>운영 안전</strong>: 모든 산출물에 git hash + dirty flag + 데이터 sha256 + 거래소 응답 시각. 폴백/바이패스 금지, fail-fast.</li>
+          <li>• <strong>API 키 정책</strong>: 출금 권한 영구 OFF + IP 화이트리스트 + 매매·잔고만. 키가 평문이어도 자산을 빼갈 수 없게 잠금.</li>
         </ul>
       </section>
 
@@ -102,8 +104,8 @@
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
               <tr>
                 <td class="py-2.5 pr-4 font-medium">목표</td>
-                <td class="py-2.5 pr-4">검증 가능한 거래 시스템</td>
-                <td class="py-2.5 text-slate-600 dark:text-slate-400">수익 극대화 ❌. 350만 원은 학습·검증 시드.</td>
+                <td class="py-2.5 pr-4">소액 시드로 수익 극대화</td>
+                <td class="py-2.5 text-slate-600 dark:text-slate-400">작은 발자국으로 시장 자기영향 최소화 + 병렬 전략으로 소액 수익 누적.</td>
               </tr>
               <tr>
                 <td class="py-2.5 pr-4 font-medium">첫 전략</td>
