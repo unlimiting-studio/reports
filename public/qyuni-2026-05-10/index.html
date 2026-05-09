@@ -71,19 +71,19 @@
         </div>
       </header>
 
-      <!-- 1. 출발점 -->
+      <!-- 1. 시작점 -->
       <section class="mb-12">
-        <h2 class="mb-4 text-2xl font-bold tracking-tight">1. 출발점 — 정직한 비판</h2>
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">1. 시작점 — 무엇을 만들고자 했나</h2>
         <p class="leading-relaxed text-slate-700 dark:text-slate-300">
-          다른 에이전트가 만든 초기 산물(<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm dark:bg-slate-800">SunnyQuantEngine</code> 카피페이스트, 평문 API 키, git 미초기화, "시간당 복리 1%" 타겟)을 발견. 정직 비판 6건으로 시작:
+          Qyuni의 1차 목표는 <strong>수익 극대화가 아니라 검증 가능한 거래 시스템</strong>이에요. 350만 원은 본격 운용 자본이 아니라
+          <strong>가설 검증·인프라 신뢰도 확보를 위한 학습 시드</strong>로 두고, 단계별로 백테스트 → 페이퍼 → 소액 실전 순서로 자본 노출을 늘려가는 그림.
         </p>
         <ul class="mt-3 space-y-1.5 text-slate-700 dark:text-slate-300">
-          <li>• <strong>시간당 1%</strong> = 연 환산 약 87,000%. 시타델·점프트레이딩이 못 하는 그림.</li>
-          <li>• <strong>김프 차익거래</strong>는 트래블룰·출금 화이트리스트 때문에 350만 원 자동화 어려움.</li>
-          <li>• 백테스팅 엔진 없이 "실제 연동"이 next-action에. 순서 역전.</li>
-          <li>• 평문 JSON에 API 키 — vault 정책·출금 권한 OFF·IP 화이트리스트가 1순위 방어선.</li>
-          <li>• 클래스명 카피페이스트, git 미초기화, .gitignore 부재.</li>
-          <li>• 프로덕션 그레이드와 갭이 큼 — Risk Layer / 테스트 / Execution 모두 부재.</li>
+          <li>• <strong>전략 가족</strong>: 차트형 그리드 단일을 첫 칼로. 분~시간 단위 보유, OHLCV로 시뮬 가능, 검증 사이클이 짧음.</li>
+          <li>• <strong>universe</strong>: 고정 N을 박지 않고, 바이낸스 24h quoteVolume 상위에서 동적으로 추출 + 친화도 임계로 거름.</li>
+          <li>• <strong>자본 운용</strong>: 한 심볼에 350만 다 박지 않고, 통과 N에 균등 분할.</li>
+          <li>• <strong>재현성·운영 안전</strong>: 모든 산출물에 git hash + dirty flag + 데이터 sha256 + 거래소 응답 시각. 폴백/바이패스 금지, fail-fast 원칙.</li>
+          <li>• <strong>API 키 정책</strong>: 출금 권한 영구 OFF + IP 화이트리스트 + 매매·잔고만. 평문이어도 키 자체로 자산을 빼갈 수 없게 잠금.</li>
         </ul>
       </section>
 
