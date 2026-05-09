@@ -6,7 +6,7 @@
     <title>sena-ai v3 — PRD</title>
     <meta
       name="description"
-      content="codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스. ai-sdk + chat-sdk 위에 운영 보조 인프라만 얹는 sena-ai v3의 요구사항 문서."
+      content="codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 에이전트 하네스. ai-sdk + chat-sdk 위에 운영 보조 인프라만 얹는 sena-ai v3의 요구사항 문서."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -88,7 +88,7 @@
           <span class="pill pill-meta">PRD</span>
           <span class="pill pill-draft">
             <svg class="size-1.5 fill-amber-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
-            Draft · 2026-05-09
+            Draft · 2026-05-09 · rev. 2
           </span>
           <span class="pill pill-meta">unlimiting-studio</span>
         </div>
@@ -96,7 +96,7 @@
           sena-ai v3
         </h1>
         <p class="mt-3 text-lg text-slate-600 dark:text-slate-400">
-          codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스를,<br
+          codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 에이전트 하네스를,<br
             class="hidden sm:block"
           />
           ai-sdk와 chat-sdk 위에 운영 보조 인프라만 얹어 다시 만든다.
@@ -195,38 +195,32 @@
           <p>
             v2는 codex CLI와 Claude Agent SDK를 워커 프로세스로 직접 fork하고, Slack 통신을 자체
             패키지(<code>@sena-ai/connector-slack</code>, <code>@sena-ai/slack-mrkdwn</code>,
-            <code>@sena-ai/tools-slack</code>)로 처리해 왔다. 이 구조 위에서 안정적으로 sena, lumie,
-            sooki, 브렌 네 에이전트가 운영되고 있지만, 최근 6주 채널 메모를 분류해 보면 디버깅 시간의
-            큰 덩어리가 다음 네 영역에 몰린다.
+            <code>@sena-ai/tools-slack</code>)로 처리해 왔다. 이 구조 위에서 sena, lumie, sooki, 브렌
+            네 에이전트가 안정적으로 운영되고 있다. 모노레포 publish 운영(마이너 버전 통일, cli
+            동반 bump, pnpm 강제)이나 다중 에이전트 동기화는 정착된 규약이고 큰 부담이 아니다.
           </p>
+          <p>문제는 다른 두 영역에 시간이 몰린다는 점이다.</p>
           <ol>
             <li>
-              <strong>Slack 디테일</strong> — mrkdwn 이중 꺾쇠, <code>parse:'none'</code>과
+              <strong>Slack 디테일.</strong> mrkdwn 이중 꺾쇠, <code>parse:'none'</code>과
               <code>unfurl_links</code>의 양립 불가, <code>chat.startStream</code> 기반 streaming
               메시지의 unfurl 비활성화, archive permalink labeling, 1.5초 throttle trailing flush,
-              <code>app_mention</code>/<code>message</code> dedup race.
+              <code>app_mention</code>/<code>message</code> dedup race. 우리 Slack 구현이 Slack 고유
+              동작을 충분히 잘 맞추지 못해서 생긴 비용이다. 핵심은
+              <strong>"업계 표준 경험에 맞춰진 라이브러리"</strong>를 쓰면 우리가 이 디테일을 다시
+              짤 일이 없다는 것이다 (개별 버그는 <code>parse:'none'</code> 같은 우회를 들어내면
+              부분적으로 해결되지만, 그게 본질은 아니다).
             </li>
             <li>
-              <strong>워커 / IPC / restart</strong> — <code>restart_agent</code> IPC 채널 race
-              condition, drain 타임아웃, self-restart 데드락.
-            </li>
-            <li>
-              <strong>모노레포 publish 운영</strong> — <code>workspace:*</code>가 publish 시점에 exact
-              pin으로 굳는 특성 때문에 core 수정 시 cli 동반 bump가 강제, 마이너 버전 통일 규칙,
-              <code>pnpm publish</code> 강제.
-            </li>
-            <li>
-              <strong>다중 에이전트 동기화</strong> — 한 패키지를 수정하면 4개 에이전트(또는 6개)
-              전부 publish → install → restart 체인을 돌려야 한다.
+              <strong>워커 / IPC / restart.</strong> <code>restart_agent</code> IPC 채널 race
+              condition, drain 타임아웃, self-restart 데드락. 우리가 직접 짠 orchestrator-worker
+              분리 위에서 발생하는 운영 비용. 단일 프로세스로 가야 한다는 결론은 아직 없고, 더 좋은
+              방안은 검토 영역.
             </li>
           </ol>
           <p>
-            (2)·(3)·(4)는 sena 자체가 짠 추상화 비용이고, (1)은 우리 Slack 구현이 Slack의 고유 동작에
-            충분히 잘 맞춰지지 못해서 생긴 비용이다.
-          </p>
-          <p>
-            community 생태계 — 특히 Vercel ai-sdk와 chat-sdk, Ben Vargas의
-            <code>ai-sdk-provider-claude-code</code>/<code>codex-cli</code> — 가 이 덩어리들을 대부분
+            community 생태계 — Vercel ai-sdk와 chat-sdk, Ben Vargas의
+            <code>ai-sdk-provider-claude-code</code>/<code>codex-cli</code> — 가 위 두 덩어리를
             흡수해 줄 수 있다는 게 v3의 출발점이다. v3는 sena의 정체성("codex CLI + Claude Code를
             에이전트 하네스로 쓰는 엔진")을 그대로 두면서, 그 위에서
             <strong>우리가 직접 짜는 코드의 표면적을 줄이는 것</strong>을 목표로 한다.
@@ -236,9 +230,9 @@
         <section id="vision">
           <h2>2. 목적 / 비전 <a class="anchor" href="#vision">#</a></h2>
           <blockquote>
-            codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 단일 프로세스 에이전트 하네스를,
-            ai-sdk와 chat-sdk 위에 운영 보조 인프라(cron · hook · channel context · MCP ·
-            multi-connector)만 얹어 만든다.
+            codex CLI와 Claude Code를 핵심 LLM 엔진으로 쓰는 에이전트 하네스를, ai-sdk와 chat-sdk
+            위에 운영 보조 인프라(스케줄 · hook · channel context · MCP · multi-connector)만 얹어
+            만든다.
           </blockquote>
           <p>
             핵심 의존성은 외부 라이브러리에 맡기고, 우리는 운영 정책과 멀티 에이전트 배포 패턴만
@@ -268,26 +262,25 @@
               <strong>Slack 트리거 응답.</strong> 사용자가 채널에서 봇을 멘션하거나 봇이 참여 중인
               스레드에 메시지를 남기면, 에이전트가 채널 컨텍스트와 메모리를 읽고 codex 또는 Claude
               Code 한 턴을 돌려 응답한다. 응답은 streaming preview로 점진 표시되며 최종 메시지는
-              unfurl·table·mrkdwn이 보존된다.
+              unfurl·table·mrkdwn이 chat-sdk Slack 어댑터의 표준 동작대로 노출된다.
             </li>
             <li>
-              <strong>정기 자동 작업.</strong> 운영자가 cron 표현으로 정의한 스케줄(하트비트, 모닝
-              브리핑, 회고 등)이 시각마다 발화하여 에이전트의 한 턴을 비대화 트리거로 실행한다.
-              prompt는 inline 문자열 또는 외부 파일 참조 둘 다 지원.
+              <strong>정기 자동 작업.</strong> 운영자가 cron 표현으로 정의한 스케줄(모닝 브리핑,
+              회고, 주기적 점검 등)이 시각마다 발화하여 에이전트의 한 턴을 비대화 트리거로
+              실행한다.
             </li>
             <li>
               <strong>외부 시스템 연동.</strong> Sunny Gateway 같은 외부 시스템의 WebSocket relay에서
-              들어오는 turn 요청을 받아, 같은 에이전트 인스턴스가 일반 Slack 응답과 동일하게
-              처리한다. 시스템마다 별도 system prompt 합성이 가능하다.
+              들어오는 turn 요청을 같은 에이전트 인스턴스가 받아 처리한다 (구체 어댑터는 v3 1차 범위
+              외, 차후).
             </li>
             <li>
-              <strong>다중 connector 동시 운영.</strong> 한 에이전트 프로세스 안에서 Slack과 Sunny가
-              동시에 살아 있고, 각자 독립된 trigger 규칙·system prompt·세션 ID를 갖는다.
+              <strong>다중 connector 동시 운영.</strong> 한 에이전트 프로세스 안에서 여러 trigger
+              소스가 동시에 살아 있고, 각자 독립된 trigger 규칙·system prompt·세션을 갖는다.
             </li>
             <li>
-              <strong>MCP 기반 도구 통합.</strong> Claude Code의 <code>__native__</code> MCP, 사용자
-              정의 MCP 서버, 그리고 Zod 기반 inline tool(우리가 정의하는 함수)이 모두 한 turn 안에서
-              호출 가능하다.
+              <strong>MCP 기반 도구 통합.</strong> 사용자 정의 MCP 서버(stdio · http 모두)를 1급으로
+              붙여 도구 호출이 가능하다.
             </li>
           </ol>
         </section>
@@ -295,7 +288,7 @@
         <section id="architecture">
           <h2>시각화 — 아키텍처 레이어 <a class="anchor" href="#architecture">#</a></h2>
           <p>
-            트리거 → adapter → middleware → provider → 엔진 순으로 한 방향 흐름. 회색 굵은 박스는 외부
+            트리거 → 어댑터 → middleware → provider → 엔진 순으로 한 방향 흐름. 회색 박스는 외부
             라이브러리, 노란 박스는 우리가 직접 짜는 코드, 파란 박스는 외부 엔진(codex CLI, Claude
             Code).
           </p>
@@ -307,22 +300,21 @@ flowchart TD
 
     subgraph T["트리거"]
       direction LR
-      slack["Slack<br/>mention · thread · reaction"]
-      cron["cronSchedule · heartbeat"]
-      sunny["Sunny Gateway WS"]
+      slack["Slack<br/>mention · thread · reaction · button · slash · modal"]
+      cron["cronSchedule"]
+      sunny["외부 시스템 (차후)"]
     end
 
-    subgraph A["chat-sdk 어댑터"]
+    subgraph A["chat-sdk + 어댑터"]
       direction LR
       slackA["@chat-adapter/slack"]
-      sunnyA["Sunny adapter (신규 작성)"]
     end
 
-    subgraph M["middleware (우리 코드)"]
+    subgraph M["우리 코드 (얇음)"]
       direction TB
-      ctx["channelContext<br/>channels.json + per-channel memory"]
-      hooks["TurnStart / TurnEnd / system 합성"]
-      session["file session store"]
+      ctx["channel context 합성"]
+      hooks["hook 합성 (transformParams · wrap*)"]
+      mux["multi-connector 라우팅"]
     end
 
     subgraph S["ai-sdk LanguageModel"]
@@ -343,23 +335,22 @@ flowchart TD
     end
 
     slack --> slackA
-    sunny --> sunnyA
-    cron -.-> M
+    sunny -.-> M
+    cron --> M
     slackA --> M
-    sunnyA --> M
     ctx --> hooks
-    session --> hooks
     hooks --> ai
+    mux --> ai
     ai --> cc
     ai --> co
     cc --> ccc
     co --> cox
 
     class slack,cron,sunny ext;
-    class slackA,sunnyA ext;
+    class slackA ext;
     class ai ext;
     class cc,co ext;
-    class ctx,hooks,session ours;
+    class ctx,hooks,mux ours;
     class ccc,cox engine;
           </pre>
         </section>
@@ -380,95 +371,86 @@ flowchart TD
                 <td>LLM provider</td>
                 <td>
                   <code>ai-sdk-provider-claude-code</code>와 <code>ai-sdk-provider-codex-cli</code>를
-                  통해 두 엔진을 ai-sdk LanguageModel로 노출. 모델 동적 지정(<code>gpt-5.5</code>
-                  같은 신규 모델명) 가능.
+                  통해 두 엔진을 ai-sdk LanguageModel로 노출. 모델 / reasoning 설정은 cc·codex의
+                  시스템 설정을 그대로 따른다.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-2</code></td>
-                <td>reasoning</td>
+                <td>Slack 통신</td>
                 <td>
-                  claude-code provider의 reasoning effort 옵션을 wrap하여 v2의
-                  <code>reasoningEffort: low | medium | high | max</code> 인터페이스를 보존.
+                  <code>chat</code> + Slack 어댑터로 mention · thread · channel · reaction · button ·
+                  slash · modal trigger를 처리. trigger 라우팅은 chat-sdk가 제공하는 핸들러 위에서
+                  짠다.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-3</code></td>
-                <td>Slack 통신</td>
+                <td>Slack 출력</td>
                 <td>
-                  <code>chat</code> + Slack 어댑터로 mention · thread · channel · reaction trigger를
-                  모두 처리. trigger filter와 reaction abort 규칙 유지.
+                  mrkdwn / streaming / unfurl / table 등 디테일은
+                  <strong>chat-sdk Slack 어댑터의 동작을 그대로 따른다.</strong> 우리가 별도 정의하지
+                  않는다.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-4</code></td>
-                <td>streaming</td>
+                <td>스케줄</td>
                 <td>
-                  Slack streaming preview + 최종 unfurl 복원이 v2 수준 이상으로 동작. mrkdwn 이중 꺾쇠
-                  보존, archive permalink 자동 라벨링, table block 지원.
+                  cron 표현 기반 정기 트리거(<code>cronSchedule</code>). chat-sdk의
+                  <code>ScheduledMessage</code> 클래스로 자체 흡수될 가능성 있음 — 1차 마이그 중
+                  검증.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-5</code></td>
-                <td>Sunny Gateway</td>
+                <td>hook</td>
                 <td>
-                  chat-sdk 어댑터 인터페이스를 따르는 Sunny adapter를 신규 작성. 음성 응답
-                  프로토콜(<code>turn.metrics</code>, binary frame 등)을 보존.
+                  TurnStart / TurnEnd / system prompt 합성 의도를 ai-sdk middleware
+                  (<code>transformParams</code>, <code>wrapGenerate</code>, <code>wrapStream</code>)
+                  와 chat-sdk 핸들러 위에 다시 짠다.
+                  <strong>실제 hook 가능 지점·시그니처는 v2와 다를 수 있고 마이그 중 검증.</strong>
                 </td>
               </tr>
               <tr>
                 <td><code>FR-6</code></td>
-                <td>cron / heartbeat</td>
+                <td>channel context</td>
                 <td>
-                  <code>cronSchedule()</code>과 <code>heartbeat()</code> API 유지. prompt는 inline
-                  string 또는 <code>{ file }</code> 둘 다 지원.
+                  채널 단위 컨텍스트 주입(설명·메모리·리포지토리)이 한 턴의 system prompt에
+                  합성된다. 구현 형태는 ai-sdk와 chat-sdk 기능을 살펴보며 결정.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-7</code></td>
-                <td>hooks</td>
+                <td>MCP</td>
                 <td>
-                  TurnStart / TurnEnd / system 합성을 ai-sdk middleware
-                  (<code>wrapLanguageModel</code>) + chat-sdk middleware로 매핑. hook 함수 시그니처는
-                  마이그레이션 가이드와 함께 변경 가능.
+                  사용자 정의 MCP 서버(stdio · streamable HTTP 등)를 1급으로 붙여 도구 호출 가능.
+                  v2의 자체 컨벤션(<code>__native__</code> 같은 임시 명명)은 가져가지 않는다.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-8</code></td>
-                <td>channel context</td>
+                <td>inline tool</td>
                 <td>
-                  <code>channels.json</code>과 채널별 <code>memory.md</code>를 turn 시작 시 자동 주입.
+                  Zod 기반 inline tool은 chat-sdk · ai-sdk 자체 tool 메커니즘으로 흡수되는 게 1차
+                  가설. 흡수 안 되는 영역은 MCP 서버 우회 — 마이그 중 결정.
                 </td>
               </tr>
               <tr>
                 <td><code>FR-9</code></td>
-                <td>MCP</td>
+                <td>session 영속성</td>
                 <td>
-                  MCP 서버를 1급 시민으로 지원. v2의 <code>__native__</code> 패턴, owned localhost
-                  bridge, Stream closed 자동 reset 규칙은 유지하거나 그에 준하는 안정성 확보.
+                  <strong>chat-sdk가 제공하는 state adapter</strong>
+                  (<code>@chat-adapter/state-redis</code> / <code>state-ioredis</code> /
+                  <code>state-pg</code> / <code>state-memory</code>) 그대로 사용. 우리가 별도 session
+                  영속성 코드를 만들지 않는다. <strong>선택할 adapter는 차니 결정 큐.</strong>
                 </td>
               </tr>
               <tr>
                 <td><code>FR-10</code></td>
-                <td>inline tool</td>
-                <td>
-                  <code>defineTool()</code> (Zod 스키마) 패턴을 MCP server 우회로 보존. 기존 v2 hook
-                  코드의 마이그레이션 비용을 최소화.
-                </td>
-              </tr>
-              <tr>
-                <td><code>FR-11</code></td>
-                <td>session 영속성</td>
-                <td>
-                  <code>.sessions.json</code> file session store 유지. 단일 프로세스 재시작 후에도
-                  conversationId ↔ session 매핑이 살아남는다.
-                </td>
-              </tr>
-              <tr>
-                <td><code>FR-12</code></td>
                 <td>multi-connector</td>
                 <td>
-                  한 에이전트 프로세스에서 Slack과 Sunny 어댑터가 동시에 active. trigger마다 system
+                  한 에이전트 프로세스에서 여러 connector 어댑터가 동시에 active. trigger마다 system
                   prompt 다르게 주입 가능.
                 </td>
               </tr>
@@ -480,27 +462,23 @@ flowchart TD
           <h2>6. 비기능 요구사항 (NFR) <a class="anchor" href="#nfr">#</a></h2>
           <ul>
             <li>
-              <strong>NFR-1 단일 프로세스.</strong> worker fork / IPC / orchestrator-worker 분리
-              폐기. 단일 Node.js 프로세스로 실행하고, 외부 process manager(pm2 또는 systemd)가
-              lifecycle을 관리한다.
+              <strong>NFR-1 fail-fast.</strong> 폴백 / 바이패스 금지(2026-04-14 차니 지시). 초기화
+              실패는 즉시 throw하고 프로세스가 죽는 게 정답.
             </li>
             <li>
-              <strong>NFR-2 fail-fast.</strong> 폴백 / 바이패스 금지(2026-04-14 차니 지시). 초기화
-              실패는 즉시 throw하고 프로세스가 죽는 게 정답이다.
-            </li>
-            <li>
-              <strong>NFR-3 외부 의존 우선.</strong> 우리가 직접 짜는 코드는 사용자 정책(channel
-              context, cron, hook, multi-connector orchestration)에 한정한다. Slack 프로토콜
+              <strong>NFR-2 외부 의존 우선.</strong> 우리가 직접 짜는 코드는 사용자 정책(channel
+              context, schedule, hook 합성, multi-connector orchestration)에 한정한다. Slack 프로토콜
               디테일과 LLM 통신은 외부 라이브러리에 맡긴다.
             </li>
             <li>
-              <strong>NFR-4 오픈소스 양립.</strong> 차니 머신에서 직접 운영되지만, 코드는 오픈소스
+              <strong>NFR-3 오픈소스 양립.</strong> 차니 머신에서 직접 운영되지만, 코드는 오픈소스
               공개를 전제로 작성한다.
             </li>
             <li>
-              <strong>NFR-5 운영 가시성.</strong> v2의 <code>traceLogger</code> 수준 로그를 유지한다.
-              어떤 trigger가 어떤 turn을 일으켰고 어떤 tool이 호출됐는지 단일 stream으로 추적 가능해야
-              한다.
+              <strong>NFR-4 운영 가시성 (검토 필요).</strong> v2의 <code>traceLogger</code> 수준의
+              turn 추적은 ai-sdk <code>wrapStream</code> middleware로 chunk·tool 호출 단위까지 직접
+              짤 수 있다. chat-sdk 쪽 자체 observability(이벤트 로그, 핸들러 trace 등) 범위는 별도
+              검토 후 NFR로 확정. 두 레이어가 어느 쪽을 책임지는지가 명확해져야 한다.
             </li>
           </ul>
         </section>
@@ -509,8 +487,8 @@ flowchart TD
           <h2>시각화 — 패키지 구조 변화 <a class="anchor" href="#packages">#</a></h2>
           <p>
             v2는 8개의 자체 패키지를 모노레포에서 마이너 버전 통일로 묶어 운영했다. v3는 단일 앱
-            하나가 외부 라이브러리 4개를 조합해 같은 일을 한다. 우리가 publish 책임지는 패키지는 0개로
-            줄어든다 (앱 자체는 publish 안 함).
+            하나가 외부 라이브러리 4개를 조합해 같은 일을 한다. 우리가 publish 책임지는 패키지는
+            <strong>앱 자체 1개</strong>로 줄어든다.
           </p>
           <pre class="mermaid">
 flowchart LR
@@ -530,9 +508,9 @@ flowchart LR
       sb["slack 번들"]
     end
 
-    subgraph V3["v3 — 1 앱"]
+    subgraph V3["v3 — 1 앱 패키지"]
       direction TB
-      app["sena 단일 앱<br/>(우리 운영 정책만)"]
+      app["sena 단일 앱<br/>(우리가 publish 하는 1개)"]
       ext1["ai-sdk"]
       ext2["chat-sdk + Slack 어댑터"]
       ext3["ai-sdk-provider-claude-code"]
@@ -555,8 +533,8 @@ flowchart LR
           <h2>7. 범위 외 (v3 1차에서 빼는 것) <a class="anchor" href="#out-of-scope">#</a></h2>
           <ul>
             <li><strong>sena-platform</strong> (Slack 앱 자동 프로비저닝, CF Workers + D1). 별도 차후 단계에서 다시 본다.</li>
-            <li><strong>분산 멀티 호스트 운영.</strong> v3는 단일 프로세스 가정.</li>
-            <li><strong>Slack/Sunny 외 chat-sdk 어댑터(Discord, Teams, WhatsApp 등).</strong> chat-sdk가 지원하지만 v3 1차에서는 라이브 connector 두 개만 검증한다.</li>
+            <li><strong>Sunny Gateway 어댑터.</strong> 시나리오 3에 의도는 명시하지만 v3 1차 어댑터는 chat-sdk Slack 하나에 집중. Sunny 연동은 별도 라운드.</li>
+            <li><strong>Slack 외 chat-sdk 어댑터(Discord, Teams, WhatsApp 등).</strong> chat-sdk가 지원하지만 v3 1차에서는 Slack만 라이브 검증.</li>
             <li><strong>자체 LLM API 호출 경로.</strong> ai-sdk-provider 우회로 직접 OpenAI/Anthropic 호출하는 경로는 만들지 않는다.</li>
           </ul>
         </section>
@@ -566,12 +544,13 @@ flowchart LR
           <ul>
             <li><strong>S-1</strong> sena, lumie, sooki, 브렌 네 에이전트가 v3 위에서 정상 운영된다(현재 v2 기능을 100% 대체).</li>
             <li>
-              <strong>S-2</strong> v3 마이그 후 6주 동안 채널 메모(<code>#project-sena</code>) 디버그
-              항목 빈도가 v2 직전 6주(2026-03-22 ~ 2026-05-03) 대비 절반 이하.
+              <strong>S-2</strong> v3 마이그 후 6주 동안 Slack 디테일 / 워커-IPC-restart 영역의 채널
+              메모(<code>#project-sena</code>) 디버그 항목 빈도가 v2 직전 6주(2026-03-22 ~
+              2026-05-03) 대비 절반 이하.
             </li>
             <li>
-              <strong>S-3</strong> Slack 디테일 관련 디버그(parse / mrkdwn / streaming / unfurl)는
-              우리 코드 수정이 아니라 chat-sdk 어댑터 PR 또는 wrapper 패치로만 해결된다.
+              <strong>S-3</strong> Slack 디테일 회귀가 발생해도 우리 코드 수정이 아니라 chat-sdk
+              어댑터 PR 또는 wrapper 패치로만 해결된다.
             </li>
             <li><strong>S-4</strong> 외부 빌더 1명이 v3 위에 새 에이전트를 README만 보고 띄울 수 있다.</li>
           </ul>
@@ -596,10 +575,10 @@ flowchart LR
                 <td><span class="font-medium text-emerald-700 dark:text-emerald-400">우리 코드 ↓↓↓</span></td>
               </tr>
               <tr>
-                <td>워커 fork / IPC / restart</td>
+                <td>워커 / IPC / restart</td>
                 <td>자체 orchestrator-worker + SIGUSR2 rolling restart</td>
-                <td>단일 프로세스 + 외부 process manager</td>
-                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">코드 ↓↓</span></td>
+                <td>프로세스 구조는 검토 영역 (후속 결정)</td>
+                <td><span class="font-medium text-amber-700 dark:text-amber-400">검토 후 결정</span></td>
               </tr>
               <tr>
                 <td>LLM 통신</td>
@@ -608,34 +587,28 @@ flowchart LR
                 <td><span class="font-medium text-emerald-700 dark:text-emerald-400">코드 ↓↓</span></td>
               </tr>
               <tr>
-                <td>패키지 publish 운영</td>
-                <td>8개 패키지, 마이너 버전 통일, cli 동반 bump 강제</td>
-                <td>publish 0개 (앱 자체)</td>
-                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">운영 ↓↓↓</span></td>
+                <td>session 영속성</td>
+                <td><code>.sessions.json</code> 자체 file store</td>
+                <td>chat-sdk state adapter (Redis / PG / in-memory)</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">코드 ↓</span></td>
               </tr>
               <tr>
-                <td>다중 에이전트 동기화</td>
-                <td>4~6개 에이전트에 publish → install → restart 체인</td>
-                <td>각 에이전트가 외부 의존 직접 업데이트</td>
-                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">운영 ↓</span></td>
+                <td>publish 대상</td>
+                <td>8개 패키지 (마이너 버전 통일 규약)</td>
+                <td>앱 자체 1개</td>
+                <td><span class="font-medium text-emerald-700 dark:text-emerald-400">표면적 ↓↓</span></td>
               </tr>
               <tr>
-                <td>reasoningEffort 옵션</td>
-                <td>1급 옵션</td>
-                <td>provider wrap 필요</td>
-                <td><span class="font-medium text-amber-700 dark:text-amber-400">보존 (래퍼 1개)</span></td>
+                <td>모델 / reasoning 설정</td>
+                <td>1급 옵션 (reasoningEffort 등)</td>
+                <td>cc · codex 시스템 설정 위임</td>
+                <td><span class="font-medium text-slate-600 dark:text-slate-400">단순화</span></td>
               </tr>
               <tr>
                 <td>Zod inline tool</td>
                 <td><code>defineTool()</code> 1급</td>
-                <td>MCP server 우회</td>
-                <td><span class="font-medium text-amber-700 dark:text-amber-400">보존 (어댑터)</span></td>
-              </tr>
-              <tr>
-                <td>codex 모델명 자유도</td>
-                <td>full</td>
-                <td>provider 사전 정의</td>
-                <td><span class="font-medium text-rose-700 dark:text-rose-400">upstream PR 필요</span></td>
+                <td>chat-sdk · ai-sdk tool 메커니즘 흡수 시도 → 안 되면 MCP 우회</td>
+                <td><span class="font-medium text-amber-700 dark:text-amber-400">마이그 중 결정</span></td>
               </tr>
             </tbody>
           </table>
@@ -653,29 +626,34 @@ flowchart LR
             </thead>
             <tbody>
               <tr>
-                <td>claude-code provider의 Zod tool 미지원</td>
-                <td>v2 <code>defineTool()</code> 코드 손봐야 함</td>
-                <td>MCP server 우회. <code>inline-mcp-bridge</code> 노하우로 어댑터 작성.</td>
-              </tr>
-              <tr>
-                <td>claude-code provider의 reasoningEffort 미지원</td>
-                <td>옵션이 noop</td>
-                <td>LanguageModel wrap으로 우리 옵션을 provider config에 떨어뜨림 (또는 upstream PR).</td>
-              </tr>
-              <tr>
-                <td>codex-cli provider 모델명 사전 정의</td>
-                <td><code>gpt-5.5</code> 같은 동적 모델명 사용 불가</td>
-                <td>upstream PR 또는 wrapper 모델 alias.</td>
-              </tr>
-              <tr>
                 <td>chat-sdk Slack 어댑터의 디테일 커버 범위 미지</td>
                 <td>mrkdwn / unfurl / streaming 회귀 가능</td>
                 <td>1차 마이그 직후 전수조사 1회 + 미커버 항목 wrapper 또는 upstream PR.</td>
               </tr>
               <tr>
-                <td>sena 고유 인프라(cron / hook / channel) 매핑</td>
-                <td>ai-sdk middleware 패러다임에 1:1 매핑이 안 됨</td>
-                <td>hook을 LanguageModel middleware와 chat-sdk middleware 두 레이어로 나누는 설계 결정 별도 명시.</td>
+                <td>ai-sdk middleware의 hook 가능 지점</td>
+                <td>v2 hook 함수 시그니처 그대로 못 옮김</td>
+                <td><code>transformParams</code> / <code>wrapGenerate</code> / <code>wrapStream</code> 위에 다시 설계. 마이그 중 결정.</td>
+              </tr>
+              <tr>
+                <td>chat-sdk session state adapter 선택</td>
+                <td>운영 의존성 변화</td>
+                <td>차니 결정 큐. in-memory 시 재시작 시 history 손실 / Redis · PG 시 외부 의존 추가.</td>
+              </tr>
+              <tr>
+                <td>chat-sdk <code>ScheduledMessage</code>의 cronSchedule 흡수 여부</td>
+                <td>FR-4 구현 형태 결정</td>
+                <td>API 문서 추가 검토 + 1차 마이그에서 시도.</td>
+              </tr>
+              <tr>
+                <td>Zod inline tool</td>
+                <td>v2 <code>defineTool()</code> 코드 손봐야 함</td>
+                <td>chat-sdk · ai-sdk 자체 tool 메커니즘 우선 확인. 안 되면 MCP server 우회.</td>
+              </tr>
+              <tr>
+                <td>chat-sdk 자체 observability 범위</td>
+                <td>NFR-4 책임 분리 결정</td>
+                <td>1차 마이그 중 chat-sdk 핸들러 trace 가능 여부 확인. 부족하면 ai-sdk middleware 쪽에서 보강.</td>
               </tr>
             </tbody>
           </table>
@@ -697,7 +675,6 @@ gantt
     section 프레임워크
     베어본 + PoC 에이전트 1개 :poc, 2026-05-14, 7d
     Slack 디테일 전수조사     :slack, 2026-05-21, 3d
-    Sunny adapter             :sunny, 2026-05-24, 4d
 
     section 본 마이그
     sena                      :s, 2026-05-28, 4d
@@ -717,7 +694,7 @@ gantt
             <li><strong>5/9 (오늘)</strong> PRD 확정, <code>unlimiting-studio/reports</code>에 호스팅.</li>
             <li><strong>5/10 ~ 5/13</strong> sena-ai 새 <code>v3</code> orphan branch에 SPEC.md + 컴포넌트별 분할 스펙 작성.</li>
             <li><strong>5/14 ~ 5/20</strong> 베어본 프레임워크 + sena_v2(비실행 상태) 또는 신규 PoC 에이전트 1개 마이그.</li>
-            <li><strong>5/21 ~ 5/27</strong> Slack 디테일 전수조사, 미커버 항목 패치, Sunny adapter 마이그.</li>
+            <li><strong>5/21 ~ 5/27</strong> Slack 디테일 전수조사, 미커버 항목 패치.</li>
             <li><strong>5/28 ~ 6/10</strong> 본 에이전트 순차 마이그 (sena → 브렌 → lumie → sooki).</li>
             <li><strong>6/11 ~ 6/24</strong> v2 deprecation, 6주 디버그 항목 빈도 측정 시작.</li>
           </ul>
@@ -732,8 +709,18 @@ gantt
               대비 커버 검증. <span class="text-amber-700 dark:text-amber-400">차니 confirm 대기.</span>
             </li>
             <li>
-              <strong>sena-platform의 v3 흡수 시점.</strong> 1차 마이그 완료 후 별도 라운드.
+              <strong>chat-sdk state adapter 선택.</strong> in-memory / <code>@chat-adapter/state-pg</code> /
+              <code>@chat-adapter/state-redis</code> 중. <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
             </li>
+            <li>
+              <strong>프로세스 구조.</strong> v2 orchestrator-worker 분리 유지 / 단일 프로세스 / 더 좋은 방안.
+              <span class="text-amber-700 dark:text-amber-400">검토 후 차니 confirm.</span>
+            </li>
+            <li>
+              <strong>앱 자체 패키지명.</strong> <code>@unlimiting-studio/sena</code> /
+              <code>@sena-ai/sena</code> / 다른 안. <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
+            </li>
+            <li><strong>sena-platform의 v3 흡수 시점.</strong> 1차 마이그 완료 후 별도 라운드.</li>
             <li>
               <strong>v2 모노레포 history 보존 vs orphan branch 완전 reset.</strong>
               <span class="text-amber-700 dark:text-amber-400">차니 결정 필요.</span>
@@ -751,7 +738,7 @@ gantt
           이 문서는 <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="/">reports.yechanny.workers.dev</a>에 호스팅된 일회성 PRD입니다.
         </div>
         <div>
-          최종 수정: 2026-05-09 ·
+          최종 수정: 2026-05-09 rev. 2 ·
           <a class="underline hover:text-indigo-600 dark:hover:text-indigo-400" href="./PRD.md">PRD.md</a>
         </div>
       </div>
