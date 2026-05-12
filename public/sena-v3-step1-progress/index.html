@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sena-ai v3 — §1 step 1~4.7 진행 보고</title>
+    <meta
+      name="description"
+      content="2026-05-10 KST 본 마이그 §1 진입부터 step 4.7까지 시간순 정리 + 라이브 검증 결과 + 차니 결정 대기 항목."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      .prose-doc h2 {
+        @apply mt-16 mb-4 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h3 {
+        @apply mt-10 mb-3 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h4 {
+        @apply mt-6 mb-2 text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc p {
+        @apply text-[15px] leading-7 text-slate-700 dark:text-slate-300;
+      }
+      .prose-doc ul {
+        @apply my-4 ml-5 list-disc space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc ol {
+        @apply my-4 ml-5 list-decimal space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc strong {
+        @apply font-semibold text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc code {
+        @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800 dark:bg-slate-800 dark:text-slate-200;
+      }
+      .prose-doc pre {
+        @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-[13px] leading-6 text-slate-100;
+      }
+      .prose-doc pre code {
+        @apply bg-transparent p-0 text-slate-100;
+      }
+      .prose-doc table {
+        @apply my-6 w-full border-collapse text-[14px];
+      }
+      .prose-doc th {
+        @apply border-b border-slate-300 bg-slate-50 px-3 py-2 text-left font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
+      }
+      .prose-doc td {
+        @apply border-b border-slate-200 px-3 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-300;
+      }
+      .prose-doc blockquote {
+        @apply my-6 border-l-2 border-indigo-500 bg-indigo-50/60 px-5 py-4 text-[15px] text-slate-800 dark:bg-indigo-500/10 dark:text-slate-200;
+      }
+      .pill {
+        @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+      }
+      .pill-step {
+        @apply border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800/40 dark:bg-indigo-500/10 dark:text-indigo-300;
+      }
+      .pill-meta {
+        @apply border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300;
+      }
+      .pill-live {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-500/10 dark:text-emerald-300;
+      }
+      .pill-warn {
+        @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-500/10 dark:text-amber-300;
+      }
+      .pill-rollback {
+        @apply border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-500/10 dark:text-rose-300;
+      }
+      .timeline-step {
+        @apply relative pl-8;
+      }
+      .timeline-step::before {
+        content: "";
+        @apply absolute left-[11px] top-1 h-full w-px bg-slate-200 dark:bg-slate-700;
+      }
+      .timeline-step::after {
+        content: "";
+        @apply absolute left-[6px] top-2 size-3 rounded-full border-2 border-indigo-500 bg-white dark:bg-slate-950;
+      }
+      .timeline-step:last-child::before {
+        @apply h-3;
+      }
+      .timeline-step.live::after {
+        @apply border-emerald-500;
+      }
+      .timeline-step.rollback::after {
+        @apply border-rose-500;
+      }
+      .timeline-step.warn::after {
+        @apply border-amber-500;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <header
+      class="border-b border-slate-200 bg-gradient-to-b from-indigo-50/40 to-white py-12 dark:border-slate-800 dark:from-indigo-950/20 dark:to-slate-950"
+    >
+      <div class="mx-auto max-w-3xl px-6">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span class="pill pill-meta">진행 보고</span>
+          <span class="pill pill-step">§1 step 1~4.7</span>
+          <span class="pill pill-live">
+            <svg class="size-1.5 fill-emerald-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
+            라이브 가동 중
+          </span>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          sena-ai v3 — §1 step 1~4.7 진행 보고
+        </h1>
+        <p class="mt-3 text-lg text-slate-600 dark:text-slate-400">
+          PoC 0단계 종료 후 5/10 본 마이그 §1 진입부터 라이브 가동까지의 흐름 정리.<br
+            class="hidden sm:block"
+          />
+          step 4 (베어본 + schedules) 완료 · step 4.5 history-aware 롤백 · step 4.6 차니 직접 starter 완성 · step 4.7
+          5/10 라이브 회귀 fix.
+        </p>
+        <dl class="mt-8 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">작성</dt>
+            <dd class="text-slate-800 dark:text-slate-200">세나 (Channy 의뢰)</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">기준 시점</dt>
+            <dd class="text-slate-800 dark:text-slate-200">2026-05-10 16:50 KST</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">베어본 에이전트</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>~/agents/sena-bare/</code> · PID 59351 · lily 봇
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">최신 commit</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>f028ef7</code> (v3 브랜치)
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">패키지 진척</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>@sena-ai/app@0.1.0</code> · 26 tests · npm 미배포
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">관련 채널</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>#project-sena</code> thread <code>1778332211.565639</code>
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="/sena-v3-poc-report/"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ← PoC 0단계 보고
+          </a>
+          <a
+            href="https://github.com/unlimiting-studio/sena-ai/tree/v3"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.73-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.16 1.18a10.92 10.92 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.05.78 2.13v3.16c0 .31.21.68.79.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+              />
+            </svg>
+            unlimiting-studio/sena-ai @ v3
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-6 py-12 prose-doc">
+      <h2 id="tldr">한 줄 요약</h2>
+      <blockquote>
+        <strong>본 마이그 §1 step 4 가 코드 레벨에선 끝났고, 베어본 에이전트(lily)가 살아있다.</strong>
+        다만 (1) 5/10 라이브에서 발견된 unhandled rejection 회귀는 운영 안전망으로 catch 중 (root fix 는 step 5+
+        영역), (2) 스펙 문서 7곳이 코드와 어긋나 있어서 1순위 (`schedules.md` + `migration.md`) 갱신이 시급, (3)
+        cron history-aware 는 차니의 "incoming 합성" 가설을 한 번 검토한 끝에 step 5+ 로 미룸 — 이 셋이 지금 차니 발화
+        대기 항목.
+      </blockquote>
+
+      <h2 id="timeline">시간순 흐름 (2026-05-10)</h2>
+
+      <div class="space-y-6">
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 1</span>
+            <code class="text-xs">f8afbe4</code>
+          </div>
+          <h3 class="!mt-0">모노레포 골격 + @sena-ai/app 0.1.0 skeleton</h3>
+          <ul>
+            <li>
+              <code>packages/app/</code> 패키지 스켈레톤. <code>defineConfig</code> 1차 가설 시그니처와
+              <code>run()</code> stub만 박음.
+            </li>
+            <li>이 시점은 코드 진입점만 — 실제 통합은 step 3에서.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 2</span>
+            <code class="text-xs">ede03b1</code>
+          </div>
+          <h3 class="!mt-0">chat-sdk 부수 발견 3건 wrapper + traceLogger 이전</h3>
+          <ul>
+            <li>
+              PoC 에서 발견된 chat-sdk 4.28.1 부수 발견 3건을 우리 wrapper 로 흡수
+              (<code>drain</code> · <code>steering</code> · <code>stream</code> · <code>abort</code>).
+            </li>
+            <li><code>traceLogger</code> middleware도 PoC 에서 패키지 모듈로 정식 이전.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 3</span>
+            <code class="text-xs">8c916cf</code>
+            <span class="pill pill-meta">codex 11 라운드</span>
+          </div>
+          <h3 class="!mt-0"><code>run(defineConfig({...}))</code> 통합 entry + 3종 핸들러</h3>
+          <p>본 마이그 §1 의 핵심. <code>sena.config.ts</code> 한 파일 + <code>run()</code> 한 호출이면
+            chat-sdk Chat · ai-sdk middleware · drain wrapper · steering 레이어 · signal handler 자동 등록까지
+            전부 흡수.</p>
+          <ul>
+            <li>
+              <strong>핸들러 3종</strong>:
+              <code>queue</code> (chat-sdk concurrency=queue · context.skipped 흡수) /
+              <code>steering</code> (즉시 abort + 새 컨텍스트 재시작 · 기본) /
+              <code>step-steering</code> (tool-result chunk = step 경계 신호로 mid-tool-call 인터럽트 회피).
+            </li>
+            <li>
+              <strong>codex review 11 라운드</strong> — race / drain / subscribe lifecycle / 스트림 leak / fail-fast /
+              안내 post 정직성 등 회귀 11종 봉합.
+            </li>
+            <li>차니 정책 따라 codex P1 의 일부 ("schedules/mcpServers fail-fast 풀어라") 는 거부 유지.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 4</span>
+            <code class="text-xs">53649b7</code>
+            <span class="pill pill-meta">codex 6 라운드</span>
+          </div>
+          <h3 class="!mt-0">schedules fan-out + ScheduleTarget 좁힘</h3>
+          <ul>
+            <li>
+              <code>setupScheduleFanOut()</code> — node-cron + KST 시간대 + lazy file read prompt + drain.track 으로
+              cron turn 도 SIGTERM 시 함께 drain.
+            </li>
+            <li>
+              target 분기: <code>slack-channel</code> + <code>threadTs</code> 있으면
+              <code>chat.thread().post()</code>, 없으면 <code>chat.channel().post()</code>.
+            </li>
+            <li>
+              <code>ScheduleTarget</code> union 에서 <code>conversation</code> type 제거 — chat-sdk Conversation id 와
+              transport-scoped thread key 의 매핑 미지수가 안 닫힌 상태라 1차에선 빼고 step 5+ 에서 다룸.
+            </li>
+            <li><code>noOverlap=true</code>로 같은 task 중첩 발화 차단. fanOut 등록 실패 시 chat.shutdown rollback.</li>
+            <li><strong>베어본 부팅 검증</strong>: <code>~/agents/sena-bare/</code> 신규 + <code>lily</code> socket 연결
+              + state-pg 5 테이블 정상 생성 확인.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-step rollback">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 4.5</span>
+            <span class="pill pill-rollback">롤백</span>
+            <code class="text-xs">fe91d92</code>
+          </div>
+          <h3 class="!mt-0">history-aware schedule turn 시도 → 두 회귀로 롤백</h3>
+          <p>
+            차니 우려 ("state 가 chat-sdk 에 저장되는데 cron 이 그걸 우회하면 다른 채팅 간 호환성 깨지지 않을까") 를 받아
+            cron 발화에 thread/channel history 합류 시도. codex review round 2 에서 두 회귀 surface:
+          </p>
+          <ol>
+            <li><strong>채널 dispatch</strong>: <code>channel.messages</code> 전체를 history 로 넣으니 채널의 임의 잡담이
+              모델 input 에 섞임.</li>
+            <li><strong>thread dispatch</strong>: cron prompt 가 thread 에 안 남고 응답만 남아 다음 발화 history 가
+              <code>assistant</code>-only 비대칭.</li>
+          </ol>
+          <p>
+            두 결함 모두 cron 의 본질 (incoming message 없는 trigger) 에서 오는 구조적 문제. 차니 우려는
+            <strong>outbound</strong> (cron 응답이 chat-sdk state-pg 에 일반 mention 응답과 똑같이 기록) 만으로 이미 충족
+            — 한 갈래로 분해해보니 <strong>inbound</strong> history-aware 는 cron 본질에 안 맞음. 롤백 + docstring 에
+            결정 근거 박음.
+          </p>
+        </div>
+
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 4.6</span>
+            <code class="text-xs">cbc0208</code>
+            <span class="pill pill-meta">차니 직접</span>
+          </div>
+          <h3 class="!mt-0">make v3 starter runnable (32 파일, +795/-158)</h3>
+          <p>차니가 06:10 KST 에 직접 박은 큰 한 방. <em>"사용자가 복제 + .env 채우기만으로 lily 같은 봇이 즉시 도는 starter"</em>를
+            완성.</p>
+          <ul>
+            <li>
+              <code>templates/slack-agent/</code> (신규) — <code>defineConfig</code> 한 객체 + <code>run()</code> 한 호출의
+              실제 starter 디렉토리.
+            </li>
+            <li>
+              factory wrapper: <code>slackAdapter()</code> · <code>postgresState()</code> · <code>requiredEnv()</code> ·
+              <code>createMemoryState()</code> — <code>chat-adapter/*</code> 직접 import 안 해도 됨.
+            </li>
+            <li><code>channelContext()</code> middleware 대대적 확장 (+159줄, 채널별 메모리 자동 주입).</li>
+            <li>
+              <code>runtime/state.ts</code> · <code>runtime/turn-context.ts</code> 신규 (AsyncLocalStorage 기반
+              channelId/threadId propagation).
+            </li>
+            <li>
+              <code>streamText</code> 에 <code>tools: ToolSet</code> + <code>stopWhen: stepCountIs(maxSteps)</code> 추가
+              — multi-step turn 통제.
+            </li>
+            <li>
+              사용자 인터페이스 약속: <code>SLACK_APP_TOKEN</code> + <code>SLACK_BOT_TOKEN</code> +
+              <code>DATABASE_URL</code> 3개만 채우면 동작.
+            </li>
+          </ul>
+        </div>
+
+        <div class="timeline-step warn">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-warn">5/10 05:35 KST 회귀</span>
+          </div>
+          <h3 class="!mt-0">라이브 1차 검증 — 두 번째 멘션 시점 process kill</h3>
+          <p>
+            sena-bare 부팅 OK · lily socket 연결 OK · 멘션 1차 응답 정상. 하지만 같은 thread 에 두 번째 멘션 도착 →
+            <code>steering.interrupt</code> 발화 →
+            <code>prev.controller.abort()</code> 직후
+            <strong>unhandled <code>DOMException [AbortError]</code></strong>로 process exit. PID 41498 종료.
+          </p>
+          <p>
+            stack trace 의 origin 은 <code>handlers/steering.ts:69</code> 의 abort 호출 — sync 함수라 직접 throw 가
+            아니라, abort 가 트리거한 어떤 promise 가 await 안 등록된 채로 reject → Node v25 기본
+            <code>--unhandled-rejections=throw</code> 모드에서 process kill.
+          </p>
+        </div>
+
+        <div class="timeline-step">
+          <div class="mb-1 flex flex-wrap items-center gap-2">
+            <span class="pill pill-step">step 4.7</span>
+            <code class="text-xs">f028ef7</code>
+          </div>
+          <h3 class="!mt-0"><code>silenceStreamTextRejections</code> + 운영 안전망</h3>
+          <ul>
+            <li>
+              ai-sdk <code>streamText</code> result 의 background <code>PromiseLike</code> 14개 필드
+              (<code>text</code> · <code>usage</code> · <code>finishReason</code> · <code>toolCalls</code> ·
+              <code>toolResults</code> · <code>steps</code> · <code>response</code> · <code>request</code> ·
+              <code>warnings</code> · <code>providerMetadata</code> · <code>reasoning</code> ·
+              <code>reasoningText</code> · <code>sources</code> · <code>files</code>) 에 noop <code>.catch</code> 등록.
+              steering / step / queue / scheduleFanOut 4 곳에서 <code>streamText</code> 호출 직후 적용.
+            </li>
+            <li>
+              starter <code>src/index.ts</code> 에 <code>process.on("unhandledRejection" / "uncaughtException")</code>
+              운영 안전망 추가 — log 만 찍고 process 살림.
+            </li>
+            <li>
+              <strong>라이브 2차 검증</strong>: 멘션 1차 (1500자 요청, 553자 누적 진행) → 2차 mention → steering interrupt
+              →
+              <span class="text-emerald-700 dark:text-emerald-400">process 살아남음</span>, inFlight 4 → 0 정상 정리, 다음 turn 정상 처리.
+            </li>
+            <li>
+              <strong>한계</strong>: <code>silenceStreamTextRejections</code> 로 cover 한 14개 외에 ai-sdk 가 abortSignal
+              listener 안에서 만드는 <em>내부 promise</em> 까지는 못 잡음 — root fix 는 ai-sdk/chat-sdk 내부, step 5+ 에서.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 id="byproducts">부수 발견 (운영 측면)</h2>
+      <h3>① state-pg 의 작업 thread subscription leak</h3>
+      <p>
+        일반 mention 핸들러가 <em>자동 subscribe</em> 하는 chat-sdk 디자인 + 활발한 작업 thread 가 만나면, 봇이 그 thread 의
+        <em>모든 후속 메시지</em> 를 흡수해 inFlight 폭주. 5/10 첫 부팅 시 차니/세나가 작업 thread
+        (<code>1778332211.565639</code>) 에서 lily 멘션 검증한 흔적이 영구 박혀, 그 후 차니/내가 보고 메시지 박을 때마다
+        lily 가 <code>onSubscribedMessage</code> 로 받아 처리 시도 → <code>inFlight=4</code>까지 쌓임 → steering
+        interrupt 다발 발생.
+      </p>
+      <p>즉시 격리: <code>chat_state_subscriptions</code> 테이블에서 작업 thread subscription 수동 DELETE.</p>
+      <p>
+        <strong>step 5+ 후보</strong>: ① Slack connector spec
+        <code>triggers.filter(event)</code>(차니가 4/4 박은 spec) 정식 구현 — channelId/threadTs 기준 무시 옵션 / ② 자동
+        unsubscribe 도구 / ③ <code>opt-in subscribe</code> 모드 (mention 시 자동 subscribe 비활성).
+      </p>
+
+      <h3>② cron incoming 합성 가설 (차니 발화 → 검토)</h3>
+      <p>
+        차니가 step 4.5 롤백 후 던진 가설 — <em>"cron 이라도 incoming 메시지를 우리가 임의로 포맷을 정해서 만들 수도 있는
+        거잖아?"</em>. 검토 결과:
+      </p>
+      <ul>
+        <li>
+          chat-sdk <code>ThreadHistoryCache.append(threadId, message)</code> API 는 노출돼 있음.
+        </li>
+        <li>
+          단 이 cache 는 <em>native history 없는 어댑터(Telegram·WhatsApp 등)용 backfill</em> — Slack 은
+          <code>conversations.history</code> 기반이라 <code>thread.messages</code> 가 native history 를 그대로 가져옴 →
+          가짜 inject 한 메시지가 <strong>Slack 에서는 안 보이는 유령 history</strong> 가 됨.
+        </li>
+        <li>
+          진짜로 깨끗하려면 cron prompt 를 <em>visible</em> user-like 메시지로 채널/thread 에 post 해야 — UX 노이즈
+          (봇이 자기에게 명령하고 자기 답하는) 발생. <strong>step 5+ 영역</strong>으로 미룸.
+        </li>
+      </ul>
+
+      <h2 id="state">현재 상태</h2>
+      <table>
+        <thead>
+          <tr><th>항목</th><th>상태</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sena-bare</code> 프로세스</td>
+            <td><span class="pill pill-live">PID 59351 가동 중</span></td>
+          </tr>
+          <tr>
+            <td>lily 봇 socket</td>
+            <td><span class="pill pill-live">connected</span> · <code>U0APLTFB3E0</code></td>
+          </tr>
+          <tr>
+            <td>state-pg (postgres docker)</td>
+            <td><span class="pill pill-live">5 테이블 자동 생성 + 격리 완료</span></td>
+          </tr>
+          <tr>
+            <td>v3 브랜치 (unlimiting-studio/sena-ai)</td>
+            <td><code>f028ef7</code> · 7 commits since PoC</td>
+          </tr>
+          <tr>
+            <td>패키지 검증</td>
+            <td>26 tests passing · typecheck clean · biome lint clean</td>
+          </tr>
+          <tr>
+            <td><code>@sena-ai/app</code> npm publish</td>
+            <td><span class="pill pill-warn">미배포 (E404)</span> — starter 가 <code>file:</code> 의존</td>
+          </tr>
+          <tr>
+            <td>unhandled rejection</td>
+            <td>운영 안전망 catch · ai-sdk 내부 root fix step 5+</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="spec-gap">스펙 문서 vs 코드 갭 (7곳)</h2>
+      <p>
+        step 3~4.7 동안 코드는 많이 갱신됐는데 <code>docs/specs/</code> 가 따라오지 않음. 1순위 두 파일은 코드와
+        <strong>정면 모순</strong>이라 운영 위험 큼.
+      </p>
+
+      <h3>🔴 1순위 (코드-스펙 직접 모순)</h3>
+      <ul>
+        <li>
+          <strong><code>schedules.md</code></strong> — <code>ScheduleTarget</code> 에 <code>conversation</code> type 그대로
+          살아있음 (코드는 step 4 round 5 에 union 에서 제거). §"동작 (1차 가설) §1" 이 여전히
+          <em>"target 이 가리키는 conversation 찾고 state adapter 에서 history load"</em> 라고 적혀있는데 step 4.5 에
+          prompt-only 로 롤백한 결정 미반영. <strong>코드와 정면 모순.</strong>
+        </li>
+        <li>
+          <strong><code>migration.md</code></strong> — step 3 / 4 / 4.5 (롤백) / 4.6 (cbc0208) / 4.7 (silenceStreamTextRejections)
+          진척 기록 0. 부수 발견 #4 (5/10 unhandled rejection 회귀) #5 (lily subscription leak) 등재 안 됨.
+        </li>
+      </ul>
+
+      <h3>🟠 2순위 (코드는 있는데 스펙 부족)</h3>
+      <ul>
+        <li>
+          <code>config.md</code> — <code>slackAdapter</code> · <code>postgresState</code> · <code>requiredEnv</code>
+          factory wrapper 시그니처 표 미반영. <code>traceLogger({ label })</code> vs
+          <code>traceLogger({ stream })</code> 시그니처 불일치. <code>channelContext.optional</code> 옵션 누락.
+        </li>
+        <li>
+          <code>architecture.md</code> — <code>run()</code> 통합 entry 흐름 + <code>templates/slack-agent/</code> starter
+          패턴 + <code>runWithTurnContext</code> (AsyncLocalStorage 기반) 한 절도 없음. FR-S-4 (외부 빌더 검증) 핵심
+          산출물이라 빠지면 안 됨.
+        </li>
+        <li>
+          <code>tools.md</code> — <code>config.tools</code> (ToolSet) + <code>maxSteps</code> + <code>stopWhen:
+          stepCountIs</code> (step 4.6 cbc0208 추가) 미기재. 인라인 MCP 우회와 별개로 ai-sdk native ToolSet 경로가 코드에
+          박혀있음.
+        </li>
+        <li>
+          <code>hooks.md</code> — turn-context AsyncLocalStorage 패턴 (channelContext middleware 가 channelId 받는 구조)
+          미기재.
+        </li>
+      </ul>
+
+      <h3>🟡 3순위 (스펙 약속 vs 코드 미구현 — step 5+ 미루기 정합성)</h3>
+      <ul>
+        <li>
+          <code>connectors/slack.md</code> — <code>triggers.filter(event)</code> spec 살아있는데 코드 미구현 (step 5+
+          미루기 명시 필요). drain skip 안내 (<code>⏳ 재시작 중이라…</code>) 코드엔 있는데 스펙엔 없음.
+        </li>
+      </ul>
+
+      <h2 id="pending">차니 결정 대기 항목</h2>
+      <ol>
+        <li>
+          <strong>스펙 1순위 갱신 GO/NOGO</strong> — <code>schedules.md</code> rev. 3 + <code>migration.md</code>
+          step 3~4.7 진행 기록 추가. 작업 시간 ~1시간.
+        </li>
+        <li>
+          <strong>운영 가이드</strong> — 작업 thread 에서 lily 멘션 안 하기 (또는 step 5 의 trigger filter 시급도).
+          현재 격리는 임시.
+        </li>
+        <li>
+          <strong>step 5 진입 우선순위</strong> — (a) ai-sdk 내부 unhandled rejection root fix / (b) Slack triggers
+          filter 정식 구현 / (c) cron history-aware (차니 incoming 합성 가설 visible UX 결정 필요) / (d)
+          <code>@sena-ai/app</code> npm publish.
+        </li>
+      </ol>
+
+      <h2 id="commits">관련 commit (v3 브랜치)</h2>
+      <table>
+        <thead>
+          <tr><th>commit</th><th>내용</th><th>step</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/f028ef7" class="text-indigo-600 hover:underline dark:text-indigo-400">f028ef7</a></code></td>
+            <td>streamText background PromiseLike silent catch (회귀 fix)</td>
+            <td>4.7</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/cbc0208" class="text-indigo-600 hover:underline dark:text-indigo-400">cbc0208</a></code></td>
+            <td>make v3 starter runnable (차니 직접 32 파일)</td>
+            <td>4.6</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/fe91d92" class="text-indigo-600 hover:underline dark:text-indigo-400">fe91d92</a></code></td>
+            <td>scheduleFanOut step 4.5 history-aware 시도 후 롤백 결정 기록</td>
+            <td>4.5</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/53649b7" class="text-indigo-600 hover:underline dark:text-indigo-400">53649b7</a></code></td>
+            <td>schedules fan-out + ScheduleTarget 좁힘 + codex 6 rounds</td>
+            <td>4</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/8c916cf" class="text-indigo-600 hover:underline dark:text-indigo-400">8c916cf</a></code></td>
+            <td>run() 통합 entry + 3종 핸들러 + codex 11 rounds</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/ede03b1" class="text-indigo-600 hover:underline dark:text-indigo-400">ede03b1</a></code></td>
+            <td>chat-sdk 부수 발견 3건 wrapper + traceLogger 이전</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td><code><a href="https://github.com/unlimiting-studio/sena-ai/commit/f8afbe4" class="text-indigo-600 hover:underline dark:text-indigo-400">f8afbe4</a></code></td>
+            <td>monorepo 골격 + @sena-ai/app skeleton</td>
+            <td>1</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+
+    <footer class="border-t border-slate-200 py-8 dark:border-slate-800">
+      <div class="mx-auto max-w-3xl px-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        세나 (Channy 의뢰) · 2026-05-10 · sena-ai v3 §1 step 1~4.7 진행 보고
+      </div>
+    </footer>
+  </body>
+</html>

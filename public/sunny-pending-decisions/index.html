@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunny — 결정 4개</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
+      background: radial-gradient(ellipse at top, #1a0b2e 0%, #0a0a0f 60%);
+      min-height: 100vh;
+    }
+    .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.08); }
+    .grad-text { background: linear-gradient(135deg, #c084fc 0%, #67e8f9 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .pick { background: linear-gradient(135deg, rgba(34,211,238,0.10) 0%, rgba(16,185,129,0.06) 100%); border: 1px solid rgba(34,211,238,0.40); }
+    .opt { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+    .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+    code, .sig { font-family: 'SF Mono', Monaco, monospace; font-size: 0.85em; color: #fcd34d; }
+    .sig-vad { color: #93c5fd; }
+    .sig-stt { color: #f9a8d4; }
+    .sig-tts { color: #6ee7b7; }
+    .sig-event { color: #fcd34d; }
+    .flow {
+      background: rgba(0,0,0,0.30);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #cbd5e1;
+      overflow-x: auto;
+    }
+    .arrow { color: #64748b; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 0.78rem; }
+    .dot { width: 8px; height: 8px; border-radius: 999px; }
+  </style>
+</head>
+<body class="text-slate-100">
+  <div class="max-w-3xl mx-auto px-6 py-12 space-y-20">
+
+    <!-- Hero -->
+    <header class="text-center space-y-6 pt-8">
+      <div class="inline-block px-3 py-1 rounded-full text-xs font-mono bg-purple-500/10 border border-purple-500/20 text-purple-300">
+        Sunny · 차니 결정 대기
+      </div>
+      <h1 class="text-5xl md:text-6xl font-bold leading-tight">
+        결정해야 할 거 <span class="grad-text">4개</span>
+      </h1>
+      <p class="text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+        VAD / STT / TTS 시그널 단위로 풀어서 정리. 각 카드 — 지금 시그널 흐름 → 결정 후 시그널 흐름 → 옵션.
+      </p>
+      <div class="flex justify-center flex-wrap gap-3 pt-2">
+        <span class="legend-item"><span class="dot" style="background:#93c5fd"></span><span class="sig-vad">VAD</span> 음성 감지</span>
+        <span class="legend-item"><span class="dot" style="background:#f9a8d4"></span><span class="sig-stt">STT</span> 텍스트 변환</span>
+        <span class="legend-item"><span class="dot" style="background:#6ee7b7"></span><span class="sig-tts">TTS</span> 음성 합성·재생</span>
+      </div>
+    </header>
+
+    <!-- Signal cheat sheet -->
+    <section class="glass rounded-2xl p-6 space-y-3">
+      <h2 class="text-lg font-bold text-purple-200">현재 시그널 (확인 차원)</h2>
+      <div class="grid md:grid-cols-3 gap-3 text-sm">
+        <div class="opt p-4">
+          <div class="sig-vad font-mono text-xs mb-1">VAD</div>
+          <ul class="text-slate-300 space-y-0.5">
+            <li>• <code>speech_start</code></li>
+            <li>• <code>speech_end</code></li>
+          </ul>
+        </div>
+        <div class="opt p-4">
+          <div class="sig-stt font-mono text-xs mb-1">STT (Soniox)</div>
+          <ul class="text-slate-300 space-y-0.5">
+            <li>• <code>non_final</code> (partial)</li>
+            <li>• <code>final</code> (확정 텍스트)</li>
+            <li>• <code>endpoint</code> (STT 자체 종료 판정)</li>
+          </ul>
+        </div>
+        <div class="opt p-4">
+          <div class="sig-tts font-mono text-xs mb-1">TTS</div>
+          <ul class="text-slate-300 space-y-0.5">
+            <li>• <code>phrase.audio</code> (청크)</li>
+            <li>• <code>playback.started</code> / <code>ended</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 1. Endpointing ============== -->
+    <section class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="chip bg-amber-500/20 text-amber-300">결정 1</span>
+        <h2 class="text-3xl font-bold">한국어 종결 판단 (Endpointing)</h2>
+      </div>
+      <p class="text-slate-400 text-sm">
+        "사용자 발화가 끝났다"고 판단해 <code>turn.commit</code>을 쏘는 시점 결정. 지금은 마지막 <span class="sig-stt">STT final</span> 후 1초 무음만 보고 끝남.
+      </p>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-purple-300 uppercase tracking-wider">지금 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-stt">STT final</span>("내일 일정 좀 봐줘") <span class="arrow">→</span> 1000ms 타이머 시작
+<span class="arrow">└─</span> 1000ms 안에 새 <span class="sig-stt">STT final</span> 도착? <span class="arrow">─</span> No <span class="arrow">→</span> <span class="sig-event">turn.commit</span> 발사
+<span class="arrow">                                                  └─</span> Yes <span class="arrow">→</span> 텍스트 합치고 타이머 재시작
+        </div>
+        <p class="text-xs text-slate-500">
+          📍 문제: "내일 일정 좀 봐줘…" 후 사용자가 1초 넘게 생각하다가 "근데 점심은 빼고"를 덧붙이면 → 첫 문장이 이미 commit돼서 응답이 시작됨. "근데"는 별개의 새 turn처럼 처리됨.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-cyan-300 uppercase tracking-wider">결정 후 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-stt">STT final</span> 도착 <span class="arrow">→</span> 마지막 어절 분류:
+<span class="arrow">  ├─</span> continuation marker ("근데", "아니", "그게", "근데", "음") <span class="arrow">→</span> 타이머 <strong class="text-cyan-200">+연장</strong>
+<span class="arrow">  ├─</span> commit marker ("해줘", "알려줘", "보여줘") <span class="arrow">→</span> 타이머 <strong class="text-cyan-200">단축 (500ms)</strong>
+<span class="arrow">  └─</span> 그 외 <span class="arrow">→</span> 기본 1000ms 유지
+        </div>
+        <p class="text-xs text-slate-500">📍 마커 목록은 스펙에 박혔어요(continuation 12개 / commit 10개). 연장·단축 ms만 결정하면 됨.</p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-purple-200">차니가 골라야 할 것 — continuation 마커가 들렸을 때 타이머를 얼마나 늘릴까?</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">A안 · +800ms</div>
+            <p class="text-xs text-slate-300">총 1800ms 대기.<br />짧은 호흡 한 번 분량.</p>
+          </div>
+          <div class="opt pick p-5">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="text-xs text-cyan-300">B안 · +1200ms</div>
+              <span class="chip bg-cyan-500/20 text-cyan-200">추천</span>
+            </div>
+            <p class="text-xs text-slate-200">총 2200ms 대기.<br />사람이 다음 어절을 시작하기에 충분.</p>
+          </div>
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">C안 · +1500ms</div>
+            <p class="text-xs text-slate-300">총 2500ms 대기.<br />거의 안 끊김. 진짜 끝났을 때 응답 살짝 늦음.</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">📦 작업량 ~3일 (<code>local-turn-detector.ts</code>)</p>
+    </section>
+
+    <!-- ============== 2. Soft/Hard interrupt ============== -->
+    <section class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="chip bg-amber-500/20 text-amber-300">결정 2</span>
+        <h2 class="text-3xl font-bold">Soft / Hard Interrupt</h2>
+      </div>
+      <p class="text-slate-400 text-sm">
+        써니가 말하는 도중(<code>AGENT_SPEAKING</code>) 사용자 끼어들기 처리. 지금은 <span class="sig-stt">STT final</span>이 의미 있게 도착해야만 abort.
+      </p>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-purple-300 uppercase tracking-wider">지금 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-vad">VAD speech_start</span> <span class="arrow">────────────────────────────</span> 무시 (TTS 계속 재생)
+<span class="sig-stt">STT non_final</span> <span class="arrow">─────────────────────────────</span> 무시
+<span class="sig-stt">STT final</span> ("아니 그게 아니라") <span class="arrow">────────</span> 의미 있음(2글자+)? <span class="arrow">→</span> hard abort
+        </div>
+        <p class="text-xs text-slate-500">
+          📍 문제: <span class="sig-vad">speech_start</span>가 잡혀도 <span class="sig-stt">STT final</span>이 도착할 때까지 <strong class="text-amber-200">500~1000ms</strong> 동안 써니가 그대로 떠듦. 사용자는 "얘 안 멈추네?" 체감.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-cyan-300 uppercase tracking-wider">결정 후 시그널 흐름 (2단계)</h3>
+        <div class="flow">
+<span class="sig-vad">VAD speech_start</span> <span class="arrow">→</span> N ms 지속? <span class="arrow">→</span> <strong class="text-cyan-200">Soft</strong>: TTS 재생 즉시 처리 (멈춤 또는 볼륨↓)
+<span class="sig-stt">STT final</span> 도착 <span class="arrow">→</span> 의미 있음? <span class="arrow">─</span> Yes <span class="arrow">→</span> <strong class="text-cyan-200">Hard</strong>: generation abort
+<span class="arrow">                              └─</span> No (잡음/짧은 backchannel) <span class="arrow">→</span> Soft 해제, 재생 복구
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-purple-200">결정 2-A — Soft가 무엇인가</h3>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">A안 · Volume Duck</div>
+            <p class="text-sm text-slate-300 mb-2">TTS 출력 −12dB로 즉시 감소. 음성 합성·재생은 계속.</p>
+            <p class="text-xs text-slate-500">+ 사용자가 "들으면서 끼어들기" 가능<br />− 모바일 스피커에선 −12dB 효과 약함</p>
+          </div>
+          <div class="opt pick p-5">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="text-xs text-cyan-300">B안 · Pause</div>
+              <span class="chip bg-cyan-500/20 text-cyan-200">추천</span>
+            </div>
+            <p class="text-sm text-slate-200 mb-2">현재 phrase의 AudioBufferSourceNode 일시정지. 복구 시 같은 chunk부터 이어 재생.</p>
+            <p class="text-xs text-slate-400">+ 모바일에서도 명확히 체감<br />+ AudioContext 구현 단순</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-purple-200">결정 2-B — Soft 트리거 임계 (<span class="sig-vad">speech_start</span> 후 N ms)</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">150ms</div>
+            <p class="text-xs text-slate-300">반응 빠름. 기침·짧은 숨소리 false positive↑</p>
+          </div>
+          <div class="opt pick p-5">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="text-xs text-cyan-300">200ms</div>
+              <span class="chip bg-cyan-500/20 text-cyan-200">추천</span>
+            </div>
+            <p class="text-xs text-slate-200">의도적 발화는 잡고 단음 noise는 컷.</p>
+          </div>
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">250ms</div>
+            <p class="text-xs text-slate-300">안정적. 빠른 끼어들기엔 늦음.</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">📦 작업량 ~3~4일 (<code>local-interrupt-controller.ts</code> + playback)</p>
+    </section>
+
+    <!-- ============== 3. Visible ledger ============== -->
+    <section class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="chip bg-amber-500/20 text-amber-300">결정 3</span>
+        <h2 class="text-3xl font-bold">Visible Ledger / beatId</h2>
+      </div>
+      <p class="text-slate-400 text-sm">
+        <strong>화면 변화</strong>를 어느 시그널과 묶어서 "확정 / 잠정 / 롤백"으로 다룰지. 음성쪽 audible ledger는 "<span class="sig-tts">playback.ended</span> 받은 phrase만 history" 결정됨. 화면쪽이 비어있음.
+      </p>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-purple-300 uppercase tracking-wider">지금 시그널 흐름</h3>
+        <div class="flow">
+모델 <span class="sig-event">tool.call(set_scene)</span> <span class="arrow">→</span> 화면에 즉시 그려짐 (영구)
+<span class="arrow">↕</span> 같은 turn 안에서 phrase는 별도로 큐잉
+<span class="sig-tts">phrase.audio</span> <span class="arrow">→</span> <span class="sig-tts">playback.started</span> <span class="arrow">→</span> <span class="sig-tts">playback.ended</span>
+                                              <span class="arrow">└─</span> interrupt 시 abort
+        </div>
+        <p class="text-xs text-slate-500">📍 문제: tool.call로 그려진 scene이 phrase abort와 무관하게 화면에 남음. 끼어들기 후 새 scene이 그 위에 덧대지면서 화면 어수선.</p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-cyan-300 uppercase tracking-wider">결정 후 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-event">tool.call(set_scene)</span> <span class="arrow">→</span> scene을 <strong class="text-cyan-200">provisional</strong>로 그림 (beatId 부착)
+                       <span class="arrow">└─</span> 같은 beatId의 <span class="sig-tts">playback.started</span> 또는 <span class="sig-tts">playback.ended</span> 시점에 commit
+                       <span class="arrow">└─</span> 같은 beatId의 phrase가 abort <span class="arrow">→</span> rollback or supersede
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-purple-200">차니가 골라야 할 것 — beat commit policy</h3>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">A · <code>immediate</code></div>
+            <p class="text-xs text-slate-300">tool.call 즉시 확정. interrupt에도 화면 그대로.</p>
+            <p class="text-xs text-slate-500 mt-1">+ 단순<br />− 화면-음성 불일치 가능</p>
+          </div>
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">B · <code>on_playback_started</code></div>
+            <p class="text-xs text-slate-300">짝 phrase 첫 audio 재생 시점에 확정.</p>
+            <p class="text-xs text-slate-500 mt-1">+ "듣기 시작 = 보기 시작"<br />− 재생 직전 interrupt에 약함</p>
+          </div>
+          <div class="opt pick p-5 md:col-span-2">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="text-xs text-cyan-300">C · scene type별 policy</div>
+              <span class="chip bg-cyan-500/20 text-cyan-200">추천</span>
+            </div>
+            <p class="text-sm text-slate-200 mb-2">기본 provisional + scene 종류별로 commit 시점 다르게.</p>
+            <div class="grid sm:grid-cols-2 gap-1.5 text-xs text-slate-300 mt-2">
+              <div>• <code>timeline</code>·<code>agenda</code> → <code>on_playback_started</code></div>
+              <div>• <code>focus_item</code> → <code>immediate</code></div>
+              <div>• <code>card</code>·<code>chart</code> → <code>on_playback_ended</code></div>
+              <div>• <code>error</code>·<code>system</code> → <code>immediate</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">📦 작업량 ~5~7일 (scene state 머신 + rollback 경로)</p>
+    </section>
+
+    <!-- ============== 4. EchoGuard ============== -->
+    <section class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="chip bg-amber-500/20 text-amber-300">결정 4</span>
+        <h2 class="text-3xl font-bold">EchoGuard</h2>
+      </div>
+      <p class="text-slate-400 text-sm">
+        써니 자기 TTS가 마이크로 되돌아와 <span class="sig-vad">VAD speech_start</span> + <span class="sig-stt">STT non_final/final</span>을 트리거하는 self-interrupt 차단. 4/13 사건 재발 방지.
+      </p>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-purple-300 uppercase tracking-wider">지금 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-tts">phrase.audio</span> 재생 중 <span class="arrow">→</span> 스피커 출력
+                      <span class="arrow">↓</span> (블루투스/외부 스피커)
+                      마이크 입력으로 되돌아옴
+                      <span class="arrow">↓</span>
+<span class="sig-vad">VAD speech_start</span> <span class="arrow">→</span> <span class="sig-stt">STT non_final/final</span> <span class="arrow">→</span> hard abort (자기 말에 자기가 끊김)
+        </div>
+        <p class="text-xs text-slate-500">📍 브라우저 <code>echoCancellation: true</code>만으로 부족. 블루투스/외부 스피커에서 새어나옴.</p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-sm font-mono text-cyan-300 uppercase tracking-wider">결정 후 시그널 흐름</h3>
+        <div class="flow">
+<span class="sig-vad">VAD speech_start</span> <span class="arrow">→</span> EchoGuard에 confidence 질의
+                       <span class="arrow">└─</span> confidence ≥ 0.7 (자기 목소리 거의 확실) <span class="arrow">→</span> Soft/Hard 둘 다 차단
+                       <span class="arrow">└─</span> confidence ≥ 0.4 <span class="arrow">→</span> Soft만, Hard 보류
+                       <span class="arrow">└─</span> confidence &lt; 0.4 <span class="arrow">→</span> 정상 처리
+        </div>
+        <p class="text-xs text-slate-500">📍 false positive 안전장치: EchoGuard에 막혀도 800ms 안에 의미 있는 <span class="sig-stt">STT final</span> 오면 hard abort 강제 (지연 1번 허용).</p>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-purple-200">차니가 골라야 할 것 — confidence 계산 방식</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">A · Timing only</div>
+            <p class="text-xs text-slate-300"><span class="sig-tts">playback</span> window와 <span class="sig-vad">speech_start</span> 시간 겹침만 사용.</p>
+            <p class="text-xs text-slate-500 mt-1">+ CPU 0<br />− 동시 발화에 false suppression</p>
+          </div>
+          <div class="opt pick p-5">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="text-xs text-cyan-300">B · Timing + Transcript</div>
+              <span class="chip bg-cyan-500/20 text-cyan-200">추천</span>
+            </div>
+            <p class="text-xs text-slate-200">A안 + assistant text와 <span class="sig-stt">STT non_final/final</span> 텍스트 유사도(trigram).</p>
+            <p class="text-xs text-slate-400 mt-1">+ "내가 한 말이 그대로 돌아옴" 직접 검증<br />+ STT 결과 재활용 (추가 신호 0)</p>
+          </div>
+          <div class="opt p-5">
+            <div class="text-xs text-slate-400 mb-1">C · Spectrogram</div>
+            <p class="text-xs text-slate-300">TTS audio buffer ↔ mic input 음파 직접 cross-correlation.</p>
+            <p class="text-xs text-slate-500 mt-1">+ 가장 정확<br />− WASM·CPU·구현 비용 큼</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">📦 작업량 ~4~5일 (B안 기준, 신규 <code>echo-guard.ts</code>)</p>
+    </section>
+
+    <!-- Summary -->
+    <section class="glass rounded-2xl p-6 space-y-4">
+      <h2 class="text-xl font-bold grad-text">한 줄로 답할 수 있는 형태</h2>
+      <ol class="space-y-3 text-[15px] text-slate-200">
+        <li>
+          <strong class="text-cyan-300">1.</strong> Endpointing — continuation marker 시 settle 연장 →
+          <span class="text-slate-400">A +800 / </span><strong class="text-cyan-200">B +1200 (추천)</strong><span class="text-slate-400"> / C +1500</span>
+        </li>
+        <li>
+          <strong class="text-cyan-300">2-A.</strong> Soft 동작 →
+          <span class="text-slate-400">A Duck / </span><strong class="text-cyan-200">B Pause (추천)</strong>
+        </li>
+        <li>
+          <strong class="text-cyan-300">2-B.</strong> Soft 트리거 (speech_start 후) →
+          <span class="text-slate-400">150 / </span><strong class="text-cyan-200">200ms (추천)</strong><span class="text-slate-400"> / 250</span>
+        </li>
+        <li>
+          <strong class="text-cyan-300">3.</strong> Visible ledger commit policy →
+          <span class="text-slate-400">A immediate / B on_playback_started / </span><strong class="text-cyan-200">C scene type별 (추천)</strong>
+        </li>
+        <li>
+          <strong class="text-cyan-300">4.</strong> EchoGuard confidence →
+          <span class="text-slate-400">A timing / </span><strong class="text-cyan-200">B timing+transcript (추천)</strong><span class="text-slate-400"> / C spectrogram</span>
+        </li>
+      </ol>
+      <p class="text-sm text-slate-400 pt-2">
+        💬 "B B 200 C B" 같이 짧게 답하거나 "다 추천대로" 한 마디면 바로 스펙에 박을게요.
+      </p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center pt-4 pb-8 text-sm text-slate-500 space-y-2">
+      <div>
+        <a href="/sunny-v2-output-contract/" class="text-purple-300 hover:text-purple-200 underline">상태머신 설계 보고서 (참고)</a>
+        <span class="mx-3">·</span>
+        <a href="https://github.com/unlimiting-studio/sunny/blob/main/spec/protocol/turn-lifecycle.md" class="text-purple-300 hover:text-purple-200 underline">turn-lifecycle.md</a>
+      </div>
+      <div class="font-mono text-xs">2026-05-10 · Sena</div>
+    </footer>
+
+  </div>
+</body>
+</html>

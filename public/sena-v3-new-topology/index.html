@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sena-v3 — 신규 토폴로지 (인터랙티브)</title>
+    <meta
+      name="description"
+      content="ai-sdk 어댑터 폐기 + chat-sdk(I/O) · @sena-ai/app(운영 wrapper) · claude-agent-sdk / codex-sdk 직접 호출. 클릭으로 펼쳐보는 v3 신규 토폴로지."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+    </style>
+    <style>
+      .node-clickable { cursor: pointer; transition: filter 0.18s ease, transform 0.18s ease; }
+      .node-clickable:hover { filter: brightness(1.1); transform: translateY(-1px); }
+      .node-clickable.active { filter: drop-shadow(0 6px 12px rgba(124, 58, 237, 0.35)); }
+      .edge-anim { stroke-dasharray: 6 6; animation: flow 1.6s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -24; } }
+      details[open] > summary > .chev { transform: rotate(90deg); }
+      .chev { transition: transform 0.2s ease; }
+      .stepper-line { background: linear-gradient(90deg, #8b5cf6 0%, #c084fc 50%, #e9d5ff 100%); }
+      .ban-strike { position: relative; }
+      .ban-strike::after {
+        content: ""; position: absolute; inset: 50% 0 auto 0;
+        height: 2px; background: #dc2626; transform: rotate(-2deg);
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <div class="mx-auto max-w-6xl px-6 py-12 sm:py-16">
+      <!-- ====================== HERO ====================== -->
+      <header class="mb-14">
+        <div class="mb-3 flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-800 dark:border-violet-800/40 dark:bg-violet-500/10 dark:text-violet-300">
+            sena-v3 · 신규 토폴로지
+          </span>
+          <span class="text-xs text-slate-500 dark:text-slate-400">2026-05-13 · 인터랙티브 보고서</span>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+          ai-sdk 어댑터 빼고,<br />
+          <span class="text-violet-600 dark:text-violet-400">SDK 두 개를 직접 부르자.</span>
+        </h1>
+        <p class="mt-5 max-w-3xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+          5일간 ai-sdk + ai-sdk-provider-claude-code 위에 쌓은 추상이
+          <strong class="text-slate-900 dark:text-slate-100">codex-sdk · claude-agent-sdk 같은 에이전트 SDK</strong>와 같은 계층에서 충돌했어요.
+          <code class="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-base text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">streamText</code> 한 데서 우회 4건이 모인 시점에 추상층 자체를 회수.
+          신규 토폴로지는 <strong>chat-sdk · @sena-ai/app · 두 SDK 직접 호출</strong> 세 갈래로 정리돼요.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3 text-sm">
+          <a href="#topology" class="rounded-lg bg-violet-600 px-4 py-2 font-medium text-white transition hover:bg-violet-700">토폴로지 보기 →</a>
+          <a href="#why" class="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:border-violet-400 hover:text-violet-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-violet-500 dark:hover:text-violet-300">왜 폐기?</a>
+          <a href="#transition" class="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:border-violet-400 hover:text-violet-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-violet-500 dark:hover:text-violet-300">Transition 5단계</a>
+        </div>
+      </header>
+
+      <!-- ====================== 결정 흐름 타임라인 ====================== -->
+      <section class="mb-16" id="timeline">
+        <h2 class="mb-6 text-2xl font-bold tracking-tight">결정 흐름 — 5일치 thesis 두 번 회수</h2>
+        <ol class="relative space-y-6 border-l-2 border-violet-200 pl-8 dark:border-violet-800/50">
+          <li class="relative">
+            <span class="absolute -left-[37px] flex h-6 w-6 items-center justify-center rounded-full bg-slate-400 text-xs font-semibold text-white">1</span>
+            <details class="group">
+              <summary class="flex cursor-pointer items-center gap-2 select-none">
+                <span class="font-semibold">5/9 — PoC: ai-sdk + chat-sdk + Claude Code, 5.9초 응답 OK</span>
+                <span class="chev text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                한 Node 프로세스에 세 추상층 다 띄워서 mention → 응답 5.9초 검증. "동작은 한다." 그러나
+                <em>이 추상이 빠지면 뭐가 망가지나</em>는 한 번도 안 물었음. 5일치 결정의 출발선.
+              </div>
+            </details>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[37px] flex h-6 w-6 items-center justify-center rounded-full bg-violet-400 text-xs font-semibold text-white">2</span>
+            <details class="group">
+              <summary class="flex cursor-pointer items-center gap-2 select-none">
+                <span class="font-semibold">5/11 12:42 — 1차 회수: "ai-sdk 어답터가 꼭 필요할까?"</span>
+                <span class="chev text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                차니 시그널어 <strong>"맞지 않는 옷"</strong> 첫 발동. ai-sdk + ai-sdk-provider-claude-code 통째 회수 제안.
+                이전에 박힌 silenceStreamTextRejections 14 필드 우회 + .text getter consumeStream + abortSignal race 등이
+                다 한 추상층에서 나왔다는 게 결정적.
+              </div>
+            </details>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[37px] flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-xs font-semibold text-white">3</span>
+            <details class="group">
+              <summary class="flex cursor-pointer items-center gap-2 select-none">
+                <span class="font-semibold">5/12 — 2차 정리: PRD orphan, ai-sdk 다시 들었다 폐기 확정</span>
+                <span class="chev text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                차니가 ai-sdk+chat-sdk 안을 다시 꺼냈다가, ai-sdk 소스 직독으로 다시 같은 결론으로 귀환.
+                <code class="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">ai/dist/index.mjs:7655-7657</code>에서
+                <code class="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">get steps()</code>가
+                <code class="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">consumeStream()</code> 강제 호출하는 게 confirm. "맞지 않는 옷" 2회째 발동.
+              </div>
+            </details>
+          </li>
+          <li class="relative">
+            <span class="absolute -left-[37px] flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-semibold text-white">4</span>
+            <details class="group" open>
+              <summary class="flex cursor-pointer items-center gap-2 select-none">
+                <span class="font-semibold">5/13 — SDK 확정: claude-agent-sdk@0.2.139 + codex-sdk@0.130.0</span>
+                <span class="chev text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                둘 다 별도 npm 패키지로 실존. v2 runtime-claude가 쓰던 <code class="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">@anthropic-ai/claude-code</code>(CLI)와 다른 <strong>programmatic library</strong>.
+                둘 다 agent loop + AbortSignal + AsyncGenerator/AsyncIterable stream 자체 노출 — chat-sdk thread.post(stream)에 직접 결합 가능.
+              </div>
+            </details>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ====================== 인터랙티브 토폴로지 다이어그램 ====================== -->
+      <section class="mb-16" id="topology">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">토폴로지 — 클릭해서 펼쳐 보세요</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">
+          각 노드를 클릭하면 우측 패널에 역할 · SDK 인터페이스 · 코드 예시가 펼쳐져요.
+        </p>
+
+        <div class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+          <!-- SVG diagram -->
+          <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-violet-50/40 to-white p-6 dark:border-slate-800 dark:from-violet-950/20 dark:to-slate-900">
+            <svg viewBox="0 0 520 540" class="w-full" id="topo-svg" role="img" aria-label="v3 신규 토폴로지 다이어그램">
+              <!-- ingress: Slack -->
+              <g class="node-clickable" data-node="slack" tabindex="0">
+                <rect x="60" y="20" width="160" height="56" rx="10" fill="#fff7ed" stroke="#f59e0b" stroke-width="2" />
+                <text x="140" y="44" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#92400e">Slack (Socket Mode)</text>
+                <text x="140" y="62" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#78350f">app_mention / message</text>
+              </g>
+
+              <!-- chat-sdk -->
+              <g class="node-clickable" data-node="chat-sdk" tabindex="0">
+                <rect x="40" y="120" width="200" height="86" rx="12" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2" />
+                <text x="140" y="148" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="14" font-weight="700" fill="#5b21b6">chat-sdk</text>
+                <text x="140" y="168" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" fill="#6d28d9">ingress · state · egress</text>
+                <text x="140" y="188" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#7c3aed">@chat-adapter/slack · state-pg</text>
+              </g>
+
+              <!-- @sena-ai/app -->
+              <g class="node-clickable" data-node="sena-app" tabindex="0">
+                <rect x="40" y="250" width="200" height="86" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2" />
+                <text x="140" y="278" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="14" font-weight="700" fill="#1e3a8a">@sena-ai/app</text>
+                <text x="140" y="298" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" fill="#1d4ed8">handler · 운영 wrapper</text>
+                <text x="140" y="318" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1e40af">drain · steering · schedules · factory</text>
+              </g>
+
+              <!-- claude-agent-sdk -->
+              <g class="node-clickable" data-node="claude-sdk" tabindex="0">
+                <rect x="285" y="220" width="200" height="74" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2" />
+                <text x="385" y="246" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="700" fill="#78350f">claude-agent-sdk</text>
+                <text x="385" y="264" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#92400e">@anthropic-ai/claude-agent-sdk</text>
+                <text x="385" y="280" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#a16207">v0.2.139 · query() AsyncGenerator</text>
+              </g>
+
+              <!-- codex-sdk -->
+              <g class="node-clickable" data-node="codex-sdk" tabindex="0">
+                <rect x="285" y="320" width="200" height="74" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2" />
+                <text x="385" y="346" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="700" fill="#78350f">codex-sdk</text>
+                <text x="385" y="364" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#92400e">@openai/codex-sdk</text>
+                <text x="385" y="380" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#a16207">v0.130.0 · Thread.runStreamed()</text>
+              </g>
+
+              <!-- state-pg -->
+              <g class="node-clickable" data-node="state-pg" tabindex="0">
+                <rect x="285" y="120" width="200" height="56" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="2" />
+                <text x="385" y="144" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#065f46">@chat-adapter/state-pg</text>
+                <text x="385" y="162" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#047857">postgres · chat_state_* 5 tables</text>
+              </g>
+
+              <!-- post back to Slack -->
+              <g class="node-clickable" data-node="slack-out" tabindex="0">
+                <rect x="60" y="460" width="160" height="56" rx="10" fill="#fff7ed" stroke="#f59e0b" stroke-width="2" />
+                <text x="140" y="484" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#92400e">Slack (post stream)</text>
+                <text x="140" y="502" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#78350f">thread.post(asyncStream)</text>
+              </g>
+
+              <!-- arrows / edges -->
+              <defs>
+                <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b5cf6" />
+                </marker>
+                <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706" />
+                </marker>
+                <marker id="arrow-emerald" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+                </marker>
+              </defs>
+
+              <!-- slack -> chat-sdk -->
+              <line x1="140" y1="76" x2="140" y2="116" stroke="#8b5cf6" stroke-width="2" class="edge-anim" marker-end="url(#arrow-violet)" />
+              <!-- chat-sdk -> sena-app -->
+              <line x1="140" y1="206" x2="140" y2="246" stroke="#8b5cf6" stroke-width="2" class="edge-anim" marker-end="url(#arrow-violet)" />
+              <!-- chat-sdk <-> state-pg -->
+              <line x1="240" y1="155" x2="285" y2="148" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)" marker-start="url(#arrow-emerald)" />
+              <!-- sena-app -> claude-sdk -->
+              <line x1="240" y1="280" x2="285" y2="250" stroke="#d97706" stroke-width="2" class="edge-anim" marker-end="url(#arrow-amber)" />
+              <!-- sena-app -> codex-sdk -->
+              <line x1="240" y1="310" x2="285" y2="350" stroke="#d97706" stroke-width="2" class="edge-anim" marker-end="url(#arrow-amber)" />
+              <!-- claude-sdk -> sena-app (stream back) -->
+              <line x1="285" y1="262" x2="240" y2="295" stroke="#d97706" stroke-width="2" stroke-dasharray="3 3" />
+              <!-- codex-sdk -> sena-app (stream back) -->
+              <line x1="285" y1="362" x2="240" y2="323" stroke="#d97706" stroke-width="2" stroke-dasharray="3 3" />
+              <!-- sena-app -> slack-out -->
+              <line x1="140" y1="336" x2="140" y2="456" stroke="#8b5cf6" stroke-width="2" class="edge-anim" marker-end="url(#arrow-violet)" />
+            </svg>
+          </div>
+
+          <!-- side panel -->
+          <aside
+            id="topo-detail"
+            class="rounded-xl border border-violet-200 bg-white p-6 shadow-sm dark:border-violet-800/40 dark:bg-slate-900"
+            aria-live="polite"
+          >
+            <div data-empty>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                ← 다이어그램의 노드를 클릭하면 여기에 상세가 펼쳐져요.
+              </p>
+              <ul class="mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                <li>· <span class="font-mono text-violet-600 dark:text-violet-400">실선</span> = 데이터 흐름</li>
+                <li>· <span class="font-mono text-violet-600 dark:text-violet-400">점선</span> = stream return</li>
+                <li>· <span class="font-mono text-amber-600 dark:text-amber-400">amber 노드</span> = 외부 SDK</li>
+                <li>· <span class="font-mono text-violet-600 dark:text-violet-400">violet 노드</span> = chat-sdk · 운영 layer</li>
+                <li>· <span class="font-mono text-emerald-600 dark:text-emerald-400">emerald 노드</span> = state 저장소</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ====================== Before / After 토글 ====================== -->
+      <section class="mb-16" id="diff">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">Before / After</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">v3 step 1~4.7(ai-sdk 시절) vs 신규 토폴로지. 토글로 비교.</p>
+
+        <div class="mb-4 inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+          <button id="diff-before-btn" class="rounded-md px-4 py-1.5 text-sm font-medium transition" data-state="before">Before (ai-sdk)</button>
+          <button id="diff-after-btn" class="rounded-md px-4 py-1.5 text-sm font-medium transition" data-state="after">After (직접 호출)</button>
+        </div>
+
+        <!-- Before panel -->
+        <div id="diff-before" class="rounded-xl border border-red-200 bg-red-50/40 p-6 dark:border-red-900/40 dark:bg-red-950/10">
+          <h3 class="mb-3 text-lg font-semibold text-red-800 dark:text-red-300">Before — ai-sdk streamText 통과 (폐기 대상)</h3>
+          <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100"><code>// queue.ts (구)
+const result = streamText({
+  model: claudeCode("sonnet"),       // ai-sdk LanguageModelV3 어댑터
+  tools: deps.tools,
+  stopWhen: stepCountIs(deps.maxSteps),
+  prompt,
+});
+silenceStreamTextRejections(result);  // 14 필드 .catch 등록 — getter access 가 stream 강제 소비
+await safePostStream(thread, result);</code></pre>
+          <div class="mt-4 space-y-2 text-sm">
+            <p class="text-red-900 dark:text-red-200">⚠ 4 가지 문제가 한 추상층에서 발생:</p>
+            <ul class="ml-4 space-y-1 text-red-800 dark:text-red-300/90">
+              <li>· <code class="font-mono text-xs">.text</code> / <code class="font-mono text-xs">.steps</code> / <code class="font-mono text-xs">.finishReason</code> getter 접근만으로 <code class="font-mono text-xs">consumeStream()</code> 호출</li>
+              <li>· chat-sdk fullStream 받기 전에 base stream 이 이미 소비 시작 → tee + buffered</li>
+              <li>· controller.abort 시 background promise 14개 unhandled rejection</li>
+              <li>· abortSignal listener race — 운영 안전망(process-level handler)으로 가까스로 보완</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- After panel -->
+        <div id="diff-after" class="hidden rounded-xl border border-violet-200 bg-violet-50/30 p-6 dark:border-violet-800/40 dark:bg-violet-950/10">
+          <h3 class="mb-3 text-lg font-semibold text-violet-800 dark:text-violet-300">After — claude-agent-sdk / codex-sdk 직접</h3>
+          <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100"><code>// queue.ts (신규)
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+const session = query({
+  prompt,
+  options: { abortController: deps.controller, /* tools/hooks/... */ },
+});
+
+for await (const msg of session) {
+  // chat-sdk thread.post 에 chunk 직접 forward
+  await postChunk(thread, msg);  // SDKMessage → text-delta 매핑
+}
+// abort 시 SDK 가 자체 처리. silence 우회 0건. background promise 0건.</code></pre>
+          <div class="mt-4 space-y-2 text-sm">
+            <p class="text-violet-900 dark:text-violet-200">✓ 4 가지 문제가 원천적으로 사라짐:</p>
+            <ul class="ml-4 space-y-1 text-violet-800 dark:text-violet-300/90">
+              <li>· SDK 가 stream 을 <code class="font-mono text-xs">AsyncGenerator</code> 로 직접 노출 — getter sideeffect 없음</li>
+              <li>· <code class="font-mono text-xs">options.abortController</code> 로 명시적 abort — race 없음</li>
+              <li>· agent loop (tool / multi-step / stop) 가 SDK 안에 통합 — 우리 추상 불필요</li>
+              <li>· session 관리 (fork/resume) 도 SDK 가 제공</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== 왜 폐기? evidence ====================== -->
+      <section class="mb-16" id="why">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">왜 ai-sdk 어댑터 폐기?</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">
+          코드 직독 결과. ai-sdk 의 <code class="font-mono">streamText</code> 결과 객체에서 lazy getter 접근만으로 internal stream 이 강제 소비돼요.
+        </p>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="font-mono text-xs text-slate-500">node_modules/ai/dist/index.mjs:7655–7657</span>
+            </div>
+            <pre class="overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100"><code>get steps() {
+  this.consumeStream();   // ← getter access → 즉시 stream 소비 시작
+  return this._steps.promise;
+}</code></pre>
+            <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+              <code class="font-mono text-xs">.text</code> / <code class="font-mono text-xs">.usage</code> / <code class="font-mono text-xs">.finishReason</code> / <code class="font-mono text-xs">.toolCalls</code> 등 거의 모든 derived getter 가 결국 이 <code class="font-mono text-xs">steps</code> getter 통과.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="font-mono text-xs text-slate-500">packages/app/src/runtime/handlers/utils.ts (구)</span>
+            </div>
+            <pre class="overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100"><code>const fields = [
+  result.text,          // ← 이 access 하나가
+  result.usage,         //    consumeStream 강제 호출 트리거
+  result.finishReason,
+  result.toolCalls,
+  ...                   // 14개 필드 전부 access
+];
+for (const p of fields) {
+  if (!p) continue;
+  Promise.resolve(p).catch(() => {});
+}</code></pre>
+            <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+              우리는 "unhandled rejection 차단" 만 의도였지만, 부수효과로 base stream 이 chat-sdk 보다 먼저 소비됨.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-lg border-l-4 border-violet-500 bg-violet-50 p-4 text-sm text-violet-900 dark:border-violet-400 dark:bg-violet-950/30 dark:text-violet-200">
+          <p>
+            <strong>한 추상층에서 우회 3건+ = 추상층 misfit 신호.</strong> 이번엔 4건(silenceStreamTextRejections / consumeStream / abortSignal race / background promise) — 개별 fix 로 잡고 있던 게 다 같은 데서 왔어요.
+          </p>
+        </div>
+      </section>
+
+      <!-- ====================== SDK 두 개 카드 비교 ====================== -->
+      <section class="mb-16" id="sdks">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">두 SDK — 인터페이스</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">둘 다 별도 npm 패키지로 실존. agent loop + AbortSignal + stream 자체 노출.</p>
+
+        <div class="grid gap-5 md:grid-cols-2">
+          <article class="rounded-xl border border-amber-300 bg-amber-50/30 p-6 dark:border-amber-700/40 dark:bg-amber-950/10">
+            <div class="mb-3 flex items-center justify-between">
+              <h3 class="text-lg font-bold text-amber-900 dark:text-amber-300">@anthropic-ai/claude-agent-sdk</h3>
+              <span class="font-mono text-xs text-amber-700 dark:text-amber-400">v0.2.139</span>
+            </div>
+            <pre class="mb-3 overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100"><code>export function query(params: {
+  prompt: string | AsyncIterable&lt;SDKUserMessage&gt;;
+  options?: Options;
+}): Query;
+
+export interface Query
+  extends AsyncGenerator&lt;SDKMessage, void&gt; {}</code></pre>
+            <ul class="space-y-1.5 text-sm text-amber-900 dark:text-amber-200">
+              <li>· <code class="font-mono text-xs">options.abortController</code> 명시 abort</li>
+              <li>· session 관리: <code class="font-mono text-xs">forkSession</code> / <code class="font-mono text-xs">resumeSession</code> / <code class="font-mono text-xs">getSessionMessages</code></li>
+              <li>· HOOK_EVENTS (PreToolUse / PostToolUse / Stop / ...)</li>
+              <li>· 인라인 MCP: <code class="font-mono text-xs">createSdkMcpServer</code></li>
+            </ul>
+          </article>
+
+          <article class="rounded-xl border border-amber-300 bg-amber-50/30 p-6 dark:border-amber-700/40 dark:bg-amber-950/10">
+            <div class="mb-3 flex items-center justify-between">
+              <h3 class="text-lg font-bold text-amber-900 dark:text-amber-300">@openai/codex-sdk</h3>
+              <span class="font-mono text-xs text-amber-700 dark:text-amber-400">v0.130.0</span>
+            </div>
+            <pre class="mb-3 overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100"><code>const codex = new Codex(opts);
+const thread = codex.startThread();
+
+const { events } = await thread.runStreamed(
+  input,
+  { signal: ctrl.signal },
+);
+
+for await (const event of events) { ... }</code></pre>
+            <ul class="space-y-1.5 text-sm text-amber-900 dark:text-amber-200">
+              <li>· <code class="font-mono text-xs">turnOptions.signal</code> abort</li>
+              <li>· ThreadEvent: ThreadStarted / TurnStarted / TurnCompleted / Item*</li>
+              <li>· Item: agent_message / reasoning / command_execution / file_change / mcp_tool_call / web_search</li>
+              <li>· Built-in: sandbox · approval · web search · MCP</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          <strong>중요 정정.</strong> v2 <code class="font-mono text-xs">runtime-claude</code> 는 <code class="font-mono text-xs">@anthropic-ai/claude-code</code>(CLI) 자식 프로세스 래퍼였어요. 신규 두 SDK 는 같은 회사 다른 패키지(<em>programmatic library</em>). v2 코드 흡수가 아니라 <strong>역할 흡수</strong>가 맞아요 — 운영 wrapper 만 살리고 API wrapping 부분은 SDK 가 자체 제공.
+        </div>
+      </section>
+
+      <!-- ====================== 운영 wrapper 5개 유지 ====================== -->
+      <section class="mb-16" id="wrappers">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">살아남는 부분 — @sena-ai/app 운영 wrapper 5</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">streamText 호출만 SDK 호출로 갈아치우고, 상위 구조는 그대로 유지돼요.</p>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">1</span>
+              <h4 class="font-semibold">drain</h4>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">in-flight turn 추적 + SIGTERM 시 자연 종료. SDK 호출도 <code class="font-mono text-xs">drain.track</code> 안에서.</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">2</span>
+              <h4 class="font-semibold">steering</h4>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">2번째 멘션 도착 시 이전 turn abort + 새 turn 시작. SDK <code class="font-mono text-xs">abortController</code> 직접 부름.</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">3</span>
+              <h4 class="font-semibold">schedules fan-out</h4>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">cron 표 → node-cron task. tick 때 SDK 호출 + chat-sdk channel/thread.post.</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">4</span>
+              <h4 class="font-semibold">channel-context</h4>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">turn-context (AsyncLocalStorage) + 채널별 메모리 자동 주입. SDK prompt 합성 시 middleware 통과.</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">5</span>
+              <h4 class="font-semibold">factory wrapper</h4>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400"><code class="font-mono text-xs">slackAdapter()</code> · <code class="font-mono text-xs">postgresState()</code> · <code class="font-mono text-xs">requiredEnv()</code>. starter 가 그대로 사용.</p>
+          </div>
+          <div class="rounded-xl border border-rose-200 bg-rose-50/30 p-5 dark:border-rose-800/40 dark:bg-rose-950/10">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">×</span>
+              <h4 class="font-semibold text-rose-900 dark:text-rose-200">silenceStreamTextRejections</h4>
+            </div>
+            <p class="ban-strike text-sm text-rose-800 dark:text-rose-300/80">14 필드 .catch 등록</p>
+            <p class="mt-1 text-xs text-rose-700 dark:text-rose-400">제거 — SDK 가 자체 abort 처리. 우회 불필요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== Transition 5단계 ====================== -->
+      <section class="mb-16" id="transition">
+        <h2 class="mb-2 text-2xl font-bold tracking-tight">Transition — 5단계 한 PR</h2>
+        <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">단계 클릭하면 상세. 작업량 체감 5~6h, 대부분 mechanical 매핑.</p>
+
+        <ol class="space-y-3">
+          <li>
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <summary class="flex cursor-pointer items-center gap-3 select-none">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">1</span>
+                <span class="font-semibold">의존성 제거</span>
+                <span class="chev ml-auto text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 pl-11 text-sm text-slate-600 dark:text-slate-400">
+                <code class="font-mono text-xs">ai</code> + <code class="font-mono text-xs">ai-sdk-provider-claude-code</code> uninstall.
+                <code class="font-mono text-xs">@anthropic-ai/claude-agent-sdk</code> + <code class="font-mono text-xs">@openai/codex-sdk</code> add.
+                <code class="font-mono text-xs">utils.ts</code> 의 <code class="font-mono text-xs">silenceStreamTextRejections</code> export 삭제.
+              </div>
+            </details>
+          </li>
+          <li>
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <summary class="flex cursor-pointer items-center gap-3 select-none">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">2</span>
+                <span class="font-semibold">streamText → SDK 호출 매핑 (4 곳)</span>
+                <span class="chev ml-auto text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 pl-11 text-sm text-slate-600 dark:text-slate-400">
+                <p>호출지: <code class="font-mono text-xs">queue.ts</code> · <code class="font-mono text-xs">steering.ts</code> · <code class="font-mono text-xs">step.ts</code> · <code class="font-mono text-xs">scheduleFanOut.ts</code>.</p>
+                <p class="mt-2">기본은 Claude → <code class="font-mono text-xs">query()</code>. 모델 선택 시 Codex → <code class="font-mono text-xs">Thread.runStreamed()</code>. SDK 별 stream 이벤트를 chat-sdk thread.post 가 받을 수 있는 형태 (text chunk) 로 매핑하는 어댑터 한 줄 모듈만 추가.</p>
+              </div>
+            </details>
+          </li>
+          <li>
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <summary class="flex cursor-pointer items-center gap-3 select-none">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">3</span>
+                <span class="font-semibold">운영 wrapper 유지</span>
+                <span class="chev ml-auto text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 pl-11 text-sm text-slate-600 dark:text-slate-400">
+                drain · steering · schedules fan-out · channel-context · factory 그대로. <code class="font-mono text-xs">abortController</code> 를 SDK 에 그대로 전달하는 형태만 조정.
+              </div>
+            </details>
+          </li>
+          <li>
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <summary class="flex cursor-pointer items-center gap-3 select-none">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">4</span>
+                <span class="font-semibold">스펙 7파일 갱신 (rev. 4)</span>
+                <span class="chev ml-auto text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 pl-11 text-sm text-slate-600 dark:text-slate-400">
+                <code class="font-mono text-xs">architecture.md</code> · <code class="font-mono text-xs">config.md</code> · <code class="font-mono text-xs">tools.md</code> · <code class="font-mono text-xs">hooks.md</code> · <code class="font-mono text-xs">schedules.md</code> · <code class="font-mono text-xs">migration.md</code> · <code class="font-mono text-xs">connectors/slack.md</code> — streamText 인용을 SDK 호출로 교체. <code class="font-mono text-xs">tools.md</code> 는 ai-sdk ToolSet 절 폐기 + SDK 자체 tool 인터페이스 절 신설.
+              </div>
+            </details>
+          </li>
+          <li>
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <summary class="flex cursor-pointer items-center gap-3 select-none">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">5</span>
+                <span class="font-semibold">아키텍처 보고서 갱신</span>
+                <span class="chev ml-auto text-violet-500">▸</span>
+              </summary>
+              <div class="mt-3 pl-11 text-sm text-slate-600 dark:text-slate-400">
+                <a href="/sena-v3-architecture/" class="text-violet-600 underline hover:text-violet-700 dark:text-violet-400">sena-v3-architecture</a> 의 외부 의존 스택 절 — ai-sdk 제거 / SDK 두 개 추가 + mention 흐름 ASCII 다이어그램에 SDK call 노드 끼움.
+              </div>
+            </details>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ====================== Live status ====================== -->
+      <section class="mb-16" id="live">
+        <h2 class="mb-4 text-2xl font-bold tracking-tight">라이브 상태 (2026-05-13 KST)</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <p class="text-xs uppercase tracking-wider text-slate-500">sena-bare</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-violet-600 dark:text-violet-400">대기 중</p>
+            <p class="mt-1 text-xs text-slate-500">transition 진입 GO 대기</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <p class="text-xs uppercase tracking-wider text-slate-500">sena-v3 v3 브랜치</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">e0e8a05</p>
+            <p class="mt-1 text-xs text-slate-500">origin sync 확인</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <p class="text-xs uppercase tracking-wider text-slate-500">claude-agent-sdk</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">0.2.139</p>
+            <p class="mt-1 text-xs text-slate-500">npm 확정</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+            <p class="text-xs uppercase tracking-wider text-slate-500">codex-sdk</p>
+            <p class="mt-1 font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">0.130.0</p>
+            <p class="mt-1 text-xs text-slate-500">npm 확정</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="mt-20 border-t border-slate-200 pt-6 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <p>관련 보고서 · <a href="/sena-v3-architecture/" class="text-violet-600 underline hover:text-violet-700 dark:text-violet-400">v3 아키텍처</a> · <a href="/sena-v3-step1-progress/" class="text-violet-600 underline hover:text-violet-700 dark:text-violet-400">step 1~4.7 진행</a> · <a href="/sena-v3-prd/" class="text-violet-600 underline hover:text-violet-700 dark:text-violet-400">PRD</a> · <a href="/sena-v3-poc-report/" class="text-violet-600 underline hover:text-violet-700 dark:text-violet-400">PoC</a></p>
+        <p class="mt-1"><a href="/" class="hover:text-violet-700 dark:hover:text-violet-400">← 모든 보고서</a></p>
+      </footer>
+    </div>
+
+    <!-- ====================== JS — 인터랙션 ====================== -->
+    <script>
+      // Topology node click handler
+      const detailPanel = document.getElementById("topo-detail");
+      const nodes = document.querySelectorAll("[data-node]");
+
+      const detailMap = {
+        "slack": {
+          title: "Slack (ingress)",
+          color: "amber",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">Socket Mode 이벤트로 <code class="font-mono text-xs">app_mention</code> · <code class="font-mono text-xs">message</code> 수신. chat-sdk 의 <code class="font-mono text-xs">@chat-adapter/slack</code> 가 Slack Bolt 위에서 dedup/lifecycle 처리.</p>
+          <pre class="mt-3 overflow-x-auto rounded bg-slate-900 p-3 font-mono text-xs text-slate-100"><code>// sena.config.ts
+adapter: slackAdapter({
+  appToken: requiredEnv("SLACK_APP_TOKEN"),
+  botToken: requiredEnv("SLACK_BOT_TOKEN"),
+})</code></pre>`,
+        },
+        "chat-sdk": {
+          title: "chat-sdk — ingress · state · egress",
+          color: "violet",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">v3 의 입출구 + 영속 state. mention 받으면 핸들러를 thread/channel 단위 concurrency lock 안에서 실행, 응답 stream 을 다시 thread.post 로 흘림.</p>
+          <ul class="mt-3 ml-4 list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
+            <li>concurrency: <code class="font-mono text-xs">queue</code> / <code class="font-mono text-xs">steering</code> / <code class="font-mono text-xs">step-steering</code></li>
+            <li>state 저장소: <code class="font-mono text-xs">@chat-adapter/state-pg</code> / <code class="font-mono text-xs">state-memory</code> (또는 sqlite 후속)</li>
+            <li>Thread / Channel reference 직접 노출 — cron 발화도 같은 인터페이스</li>
+          </ul>`,
+        },
+        "sena-app": {
+          title: "@sena-ai/app — 운영 wrapper layer",
+          color: "blue",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">v3 의 얇은 앱 레이어. SDK 호출 자체는 한 줄이지만, 운영에 필요한 wrapper 5개가 둘러쌈.</p>
+          <ul class="mt-3 ml-4 list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
+            <li><code class="font-mono text-xs">drain.track</code> — SIGTERM 시 in-flight turn 자연 종료</li>
+            <li><code class="font-mono text-xs">steering.interrupt</code> — 2번째 mention 시 이전 abort + 새 turn</li>
+            <li><code class="font-mono text-xs">setupScheduleFanOut</code> — cron 표 → node-cron task</li>
+            <li><code class="font-mono text-xs">channelContext</code> — 채널별 메모리 자동 주입 (AsyncLocalStorage)</li>
+            <li><code class="font-mono text-xs">factory wrapper</code> — slackAdapter/postgresState/requiredEnv</li>
+          </ul>`,
+        },
+        "claude-sdk": {
+          title: "@anthropic-ai/claude-agent-sdk · v0.2.139",
+          color: "amber",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">v2 가 쓰던 <code class="font-mono text-xs">@anthropic-ai/claude-code</code>(CLI) 와 <strong>다른 패키지</strong>. programmatic library — Claude Code 의 능력(tool / agent loop / session)을 라이브러리로 노출.</p>
+          <pre class="mt-3 overflow-x-auto rounded bg-slate-900 p-3 font-mono text-xs text-slate-100"><code>import { query } from "@anthropic-ai/claude-agent-sdk";
+
+const session = query({
+  prompt,
+  options: {
+    abortController: ctrl,
+    hooks: { PreToolUse: [...] },
+    mcpServers: [...],
+  },
+});
+
+for await (const msg of session) { /* ... */ }</code></pre>
+          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">Query 는 <code class="font-mono text-xs">AsyncGenerator&lt;SDKMessage, void&gt;</code>. session 관리(fork/resume) 도 같은 패키지에서 제공.</p>`,
+        },
+        "codex-sdk": {
+          title: "@openai/codex-sdk · v0.130.0",
+          color: "amber",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">Codex agent 의 TypeScript SDK. Thread 단위 lifecycle + AsyncGenerator stream.</p>
+          <pre class="mt-3 overflow-x-auto rounded bg-slate-900 p-3 font-mono text-xs text-slate-100"><code>import { Codex } from "@openai/codex-sdk";
+
+const codex = new Codex({ /* sandbox/webSearch/... */ });
+const thread = codex.startThread();
+
+const { events } = await thread.runStreamed(
+  input,
+  { signal: ctrl.signal },
+);
+for await (const ev of events) { /* ev.type === "item.completed" 등 */ }</code></pre>
+          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">ThreadEvent 7종 + Item 6종 (agent_message / reasoning / command_execution / file_change / mcp_tool_call / web_search).</p>`,
+        },
+        "state-pg": {
+          title: "@chat-adapter/state-pg",
+          color: "emerald",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">Postgres 기반 chat-sdk state adapter. <code class="font-mono text-xs">chat_state_*</code> 5 테이블 자동 생성 — Thread / Channel / Message / Lock / Subscription.</p>
+          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">차니 0:35 sqlite 질문은 <em>v3 토폴로지 재고로 보류</em>. <code class="font-mono text-xs">StateAdapter</code> 인터페이스 자체는 chat-sdk export — better-sqlite3 위 ~150줄로 구현 가능. 별도 작업으로.</p>`,
+        },
+        "slack-out": {
+          title: "Slack (egress)",
+          color: "amber",
+          body: `<p class="text-sm text-slate-700 dark:text-slate-300">SDK stream → text chunk 변환 → <code class="font-mono text-xs">thread.post(asyncIterable)</code>. chat-sdk 가 chat.startStream / appendStream / stopStream 으로 처리. 길이 제한 / mrkdwn / unfurl 등은 chat-sdk 안.</p>
+          <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">cron 발화는 incoming message 없는 thread 라 <code class="font-mono text-xs">safePostStream</code> 의 string fallback 경로(<code class="font-mono text-xs">await result.text</code>) 유지 — SDK 별 stream 끝까지 await 후 string post.</p>`,
+        },
+      };
+
+      nodes.forEach((node) => {
+        node.addEventListener("click", () => activate(node));
+        node.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(node); }
+        });
+      });
+
+      function activate(node) {
+        const key = node.dataset.node;
+        const data = detailMap[key];
+        if (!data) return;
+        nodes.forEach((n) => n.classList.remove("active"));
+        node.classList.add("active");
+        detailPanel.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <h3 class="text-lg font-bold tracking-tight">${data.title}</h3>
+            <button data-close class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200" aria-label="닫기">✕</button>
+          </div>
+          <div class="mt-4">${data.body}</div>
+        `;
+        detailPanel.querySelector("[data-close]").addEventListener("click", reset);
+      }
+
+      function reset() {
+        nodes.forEach((n) => n.classList.remove("active"));
+        detailPanel.innerHTML = `
+          <div data-empty>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              ← 다이어그램의 노드를 클릭하면 여기에 상세가 펼쳐져요.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <li>· <span class="font-mono text-violet-600 dark:text-violet-400">실선</span> = 데이터 흐름</li>
+              <li>· <span class="font-mono text-violet-600 dark:text-violet-400">점선</span> = stream return</li>
+              <li>· <span class="font-mono text-amber-600 dark:text-amber-400">amber 노드</span> = 외부 SDK</li>
+              <li>· <span class="font-mono text-violet-600 dark:text-violet-400">violet 노드</span> = chat-sdk · 운영 layer</li>
+              <li>· <span class="font-mono text-emerald-600 dark:text-emerald-400">emerald 노드</span> = state 저장소</li>
+            </ul>
+          </div>
+        `;
+      }
+
+      // Before/After toggle
+      const beforeBtn = document.getElementById("diff-before-btn");
+      const afterBtn = document.getElementById("diff-after-btn");
+      const beforePanel = document.getElementById("diff-before");
+      const afterPanel = document.getElementById("diff-after");
+
+      function setDiff(state) {
+        if (state === "before") {
+          beforePanel.classList.remove("hidden");
+          afterPanel.classList.add("hidden");
+          beforeBtn.classList.add("bg-white", "shadow", "text-red-700", "dark:bg-slate-700", "dark:text-red-300");
+          beforeBtn.classList.remove("text-slate-500");
+          afterBtn.classList.remove("bg-white", "shadow", "text-violet-700", "dark:bg-slate-700", "dark:text-violet-300");
+          afterBtn.classList.add("text-slate-500");
+        } else {
+          beforePanel.classList.add("hidden");
+          afterPanel.classList.remove("hidden");
+          afterBtn.classList.add("bg-white", "shadow", "text-violet-700", "dark:bg-slate-700", "dark:text-violet-300");
+          afterBtn.classList.remove("text-slate-500");
+          beforeBtn.classList.remove("bg-white", "shadow", "text-red-700", "dark:bg-slate-700", "dark:text-red-300");
+          beforeBtn.classList.add("text-slate-500");
+        }
+      }
+      beforeBtn.addEventListener("click", () => setDiff("before"));
+      afterBtn.addEventListener("click", () => setDiff("after"));
+      setDiff("after"); // 기본은 After 강조
+    </script>
+  </body>
+</html>

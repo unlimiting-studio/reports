@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sena-ai v3 — 아키텍처 & 코드베이스 보고서</title>
+    <meta
+      name="description"
+      content="sena-ai v3 한 페이지 아키텍처 보고서. codex/Claude Code 위 얇은 앱 레이어 — ai-sdk + chat-sdk + drain wrapper + steering 레이어 + schedules + channel context middleware."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans:
+          "Pretendard", "Inter", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
+          "Noto Sans KR", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      .prose-doc h2 {
+        @apply mt-16 mb-4 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h3 {
+        @apply mt-10 mb-3 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc h4 {
+        @apply mt-6 mb-2 text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc p {
+        @apply text-[15px] leading-7 text-slate-700 dark:text-slate-300;
+      }
+      .prose-doc ul {
+        @apply my-4 ml-5 list-disc space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc ol {
+        @apply my-4 ml-5 list-decimal space-y-1 text-[15px] leading-7 text-slate-700 dark:text-slate-300 marker:text-slate-400;
+      }
+      .prose-doc strong {
+        @apply font-semibold text-slate-900 dark:text-slate-100;
+      }
+      .prose-doc code {
+        @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800 dark:bg-slate-800 dark:text-slate-200;
+      }
+      .prose-doc pre {
+        @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-[13px] leading-6 text-slate-100;
+      }
+      .prose-doc pre code {
+        @apply bg-transparent p-0 text-slate-100;
+      }
+      .prose-doc table {
+        @apply my-6 w-full border-collapse text-[14px];
+      }
+      .prose-doc th {
+        @apply border-b border-slate-300 bg-slate-50 px-3 py-2 text-left font-semibold text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
+      }
+      .prose-doc td {
+        @apply border-b border-slate-200 px-3 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-300;
+      }
+      .prose-doc blockquote {
+        @apply my-6 border-l-2 border-sky-500 bg-sky-50/60 px-5 py-4 text-[15px] text-slate-800 dark:bg-sky-500/10 dark:text-slate-200;
+      }
+      .pill {
+        @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+      }
+      .pill-step {
+        @apply border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800/40 dark:bg-sky-500/10 dark:text-sky-300;
+      }
+      .pill-meta {
+        @apply border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300;
+      }
+      .pill-live {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-500/10 dark:text-emerald-300;
+      }
+      .pill-warn {
+        @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-500/10 dark:text-amber-300;
+      }
+      .pill-layer {
+        @apply border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-800/40 dark:bg-teal-500/10 dark:text-teal-300;
+      }
+      .layer-card {
+        @apply rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/40;
+      }
+      .layer-card h4 {
+        @apply !mt-0 mb-2;
+      }
+      .layer-card ul {
+        @apply !my-2;
+      }
+    </style>
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <header
+      class="border-b border-slate-200 bg-gradient-to-b from-sky-50/40 to-white py-12 dark:border-slate-800 dark:from-sky-950/20 dark:to-slate-950"
+    >
+      <div class="mx-auto max-w-3xl px-6">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span class="pill pill-meta">아키텍처 보고</span>
+          <span class="pill pill-step">v3 §1</span>
+          <span class="pill pill-live">
+            <svg class="size-1.5 fill-emerald-500" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" /></svg>
+            라이브 가동 중
+          </span>
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          sena-ai v3 — 아키텍처 &amp; 코드베이스 보고서
+        </h1>
+        <p class="mt-3 text-lg text-slate-600 dark:text-slate-400">
+          지금까지의 v3 아키텍처 그림 + <code>@sena-ai/app</code> 패키지가 실제로 하는 역할을 한 페이지로
+          정리. 외부 빌더 입장에서 "어디 와이어가 어디로 꽂히나"를 한눈에 잡을 수 있게.
+        </p>
+        <dl class="mt-8 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">작성</dt>
+            <dd class="text-slate-800 dark:text-slate-200">세나 (차니 의뢰)</dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">기준 시점</dt>
+            <dd class="text-slate-800 dark:text-slate-200">2026-05-10 KST · v3 브랜치 <code>f028ef7</code></dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">패키지</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>@sena-ai/app@0.1.0</code> · 26 tests · typecheck/lint clean
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">베어본 에이전트</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>~/agents/sena-bare/</code> · PID 59351 · lily 봇 socket connected
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">starter</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>templates/slack-agent/</code> · env 3개로 즉시 부팅
+            </dd>
+          </div>
+          <div>
+            <dt class="font-medium text-slate-500 dark:text-slate-400">엔진</dt>
+            <dd class="text-slate-800 dark:text-slate-200">
+              <code>codex CLI</code> + <code>Claude Code</code> (provider 한 줄 교체)
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="/sena-v3-step1-progress/"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ↳ §1 step 진행 보고
+          </a>
+          <a
+            href="/sena-v3-poc-report/"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ↳ PoC 0단계 보고
+          </a>
+          <a
+            href="https://github.com/unlimiting-studio/sena-ai/tree/v3"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.73-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.16 1.18a10.92 10.92 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.05.78 2.13v3.16c0 .31.21.68.79.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+              />
+            </svg>
+            unlimiting-studio/sena-ai @ v3
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-6 py-12 prose-doc">
+      <h2 id="thesis">1. 한 줄 thesis</h2>
+      <blockquote>
+        <strong>sena-ai v3 는 codex CLI 와 Claude Code 를 핵심 LLM 엔진으로 쓰는 단일 프로세스
+        에이전트 하네스이며, ai-sdk + chat-sdk 위에 운영 보조 인프라(drain wrapper · steering 레이어 ·
+        schedules · channel context middleware)만 얹은 <em>얇은 앱 레이어</em> 다.</strong>
+      </blockquote>
+      <p>
+        모델/대화 라우팅은 외부 라이브러리에 위임하고, 우리 코드(<code>@sena-ai/app</code>)는 그 둘을
+        엮을 때 비는 운영 안전망과 외부 빌더용 진입 단순화만 책임진다. 한 명의 외부 빌더가
+        <code>cwd</code> 안에서 <code>sena.config.ts</code> 한 파일 + <code>run()</code> 한 호출로 봇 한
+        대를 띄울 수 있는 형태다.
+      </p>
+
+      <h2 id="external-stack">2. 외부 의존 스택</h2>
+      <p>
+        <code>packages/app/package.json</code> 의 dependencies 7개를 세 layer 로 묶고, 각 패키지가 우리
+        코드 어디에서 어떻게 쓰이는지 한 줄씩 정리.
+      </p>
+
+      <div class="not-prose my-6 grid gap-4 sm:grid-cols-1">
+        <div class="layer-card">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="pill pill-layer">모델 layer</span>
+            <span class="pill pill-meta">LLM 엔진 + 추상화</span>
+          </div>
+          <h4>ai · @ai-sdk/provider · ai-sdk-provider-claude-code · ai-sdk-provider-codex-cli</h4>
+          <ul class="text-[14px] leading-7 text-slate-700 dark:text-slate-300 list-disc ml-5">
+            <li>
+              <code>ai</code> (Vercel AI SDK 6.x) — <code>streamText</code>, <code>wrapLanguageModel</code>,
+              <code>stepCountIs</code>, <code>ToolSet</code> 사용. 우리는 핸들러 4 곳
+              (<code>queue</code>/<code>steering</code>/<code>step-steering</code>/<code>scheduleFanOut</code>)
+              에서 직접 <code>streamText</code> 를 호출하고, 결과 14 개 background <code>PromiseLike</code>
+              필드에 <code>silenceStreamTextRejections</code> 로 noop catch 를 박는다.
+            </li>
+            <li>
+              <code>@ai-sdk/provider</code> — <code>LanguageModelV3</code> 타입 / V3 middleware 인터페이스
+              (<code>specificationVersion: "v3"</code>). channelContext · traceLogger 두 미들웨어가 V3 명세를
+              구현.
+            </li>
+            <li>
+              <strong><code>ai-sdk-provider-claude-code</code></strong> — starter 의 기본 엔진. <code>claudeCode("sonnet")</code>
+              한 줄로 Claude Code CLI 위에서 동작 (별도 API 키 없이 cc 로그인 세션 재사용).
+            </li>
+            <li>
+              <strong><code>ai-sdk-provider-codex-cli</code></strong> — codex 엔진을 같은 ai-sdk
+              <code>LanguageModelV3</code> 인터페이스로 노출. <code>config.model</code> 한 줄 교체로 엔진 변경.
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer-card">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="pill pill-layer">채팅 layer</span>
+            <span class="pill pill-meta">transport + state</span>
+          </div>
+          <h4>chat · @chat-adapter/slack · @chat-adapter/state-pg · @chat-adapter/state-memory</h4>
+          <ul class="text-[14px] leading-7 text-slate-700 dark:text-slate-300 list-disc ml-5">
+            <li>
+              <code>chat</code> (chat-sdk 4.28.1) — <code>Chat</code> 인스턴스 / <code>onNewMention</code> /
+              <code>onSubscribedMessage</code> / <code>thread.post</code> / <code>channel.post</code> /
+              <code>concurrency: { strategy }</code> / <code>Chat.shutdown</code>. <code>runtime/run.ts</code>
+              가 이 SDK 의 lifecycle 을 통째로 감싼다.
+            </li>
+            <li>
+              <code>@chat-adapter/slack</code> — Socket Mode 어댑터. 우리 <code>adapters/slack.ts</code> 에서
+              <code>createSlackAdapter({ mode: "socket", ... })</code> default 로 한 번 더 wrap 해서
+              <code>slackAdapter()</code> 로 노출.
+            </li>
+            <li>
+              <code>@chat-adapter/state-pg</code> — Postgres state adapter. starter 가 <code>postgresState({ connectionString })</code>
+              로 받고, 부팅 시 5 테이블 자동 생성 (subscriptions / messages / threads 등).
+            </li>
+            <li>
+              <code>@chat-adapter/state-memory</code> — 단위 테스트용. <code>createMemoryState()</code> 로 노출.
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer-card">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="pill pill-layer">운영 layer</span>
+            <span class="pill pill-meta">cron + signals</span>
+          </div>
+          <h4>node-cron</h4>
+          <ul class="text-[14px] leading-7 text-slate-700 dark:text-slate-300 list-disc ml-5">
+            <li>
+              <code>node-cron</code> 4.2.1 — <code>setupScheduleFanOut</code> 가 <code>nodeCron.schedule(spec, cb, { timezone: "Asia/Seoul", noOverlap: true })</code>
+              로 등록. validate → register → rollback-on-throw 패턴.
+            </li>
+            <li>
+              SIGTERM/SIGINT signal handler 는 Node 기본 <code>process.on(...)</code>. 외부 의존 없이
+              <code>run.ts</code> 가 직접 박는다 (<code>autoRegisterSignalHandlers</code> 옵션으로 끌 수도 있음).
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="text-[14px] text-slate-600 dark:text-slate-400">
+        ✱ 이 7 개가 sena-ai v3 의 외부 의존 전부다. 우리 코드는 이 위에 얇은 wrapper / middleware /
+        signal-orchestration 만 얹는다.
+      </p>
+
+      <h2 id="app-package">3. <code>@sena-ai/app</code> 패키지 — 디렉토리와 5 역할</h2>
+
+      <p>
+        <code>packages/app/src/</code> 트리. 각 파일이 무엇을 책임지는지 한 줄씩.
+      </p>
+
+      <pre><code>src/
+├── config.ts                    ← defineConfig() — SenaConfig 타입 + 기본값 채움
+├── env.ts                       ← requiredEnv() — 누락 시 fail-fast
+├── adapters/
+│   └── slack.ts                 ← slackAdapter() — @chat-adapter/slack thin wrapper (socket default)
+├── state/
+│   ├── index.ts                 ← postgresState / createMemoryState 재export
+│   ├── postgres.ts              ← createPostgresState — connectionString 단순화
+│   └── memory.ts                ← createMemoryState — 테스트용
+├── middlewares/
+│   ├── index.ts                 ← channelContext + traceLogger 재export
+│   ├── channel-context.ts       ← 채널별 memory.md / channels.json 자동 system prompt 주입
+│   └── trace.ts                 ← turn-start / chunk 분포 stdout trace
+├── schedules/
+│   ├── index.ts                 ← cronSchedule 재export
+│   └── cron.ts                  ← cronSchedule({ name, cron, target, prompt }) factory
+└── runtime/
+    ├── run.ts                   ← run() — 모든 하부 인프라 통합 entry
+    ├── drain.ts                 ← createDrainController — chat-sdk shutdown drain 부재 보완
+    ├── steering.ts              ← SteeringRegistry — thread 별 AbortController 슬롯
+    ├── stream.ts                ← safePostStream — chat-sdk 부수 발견 #1 우회
+    ├── abort.ts                 ← isAbortError / isChatStreamCloseNoise / abortableSleep
+    ├── turn-context.ts          ← AsyncLocalStorage 기반 channelId/threadId/trigger propagation
+    ├── state.ts                 ← StateInput → chat-sdk StateAdapter 변환
+    ├── scheduleFanOut.ts        ← node-cron 등록 + KST + drain.track + noOverlap + rollback
+    └── handlers/
+        ├── queue.ts             ← chat-sdk concurrency=queue (인터럽트 없음)
+        ├── steering.ts          ← 즉시 abort + 새 컨텍스트 재시작 (기본)
+        ├── step.ts              ← tool-result chunk 경계에서 abort (mid-tool-call 회피)
+        ├── types.ts             ← ChatSdkHandler / HandlerDeps / gracefulDrainSkip
+        └── utils.ts             ← stripLeadingMention · buildPromptWithSkipped ·
+                                    silenceStreamTextRejections · tapTextDelta
+</code></pre>
+
+      <h3>5 역할 요약</h3>
+      <ol>
+        <li>
+          <strong>(1) 통합 entry</strong> — <code>run()</code> 한 호출이면 chat-sdk Chat 인스턴스 +
+          ai-sdk middleware chain (<code>wrapLanguageModel</code>) + drain wrapper + steering 레이어 +
+          signal handler + cron schedule fan-out 까지 자동 등록.
+        </li>
+        <li>
+          <strong>(2) 핸들러 3 종</strong> — <code>queue</code> (concurrency=queue + skipped 흡수) /
+          <code>steering</code> (즉시 abort + 새 컨텍스트 재시작 · 기본) /
+          <code>step-steering</code> (tool-result chunk = step 경계에서 abort).
+        </li>
+        <li>
+          <strong>(3) drain + steering 레이어</strong> — chat-sdk 4.28.1 부수 발견 3 건
+          (<code>drain</code> 부재 · stream stop 시 <code>not_authed</code> · external thread reference
+          stream 깨짐) 을 우리 wrapper 로 흡수.
+        </li>
+        <li>
+          <strong>(4) schedules fan-out</strong> — node-cron 기반 cron 트리거. KST 시간대 / lazy file
+          read prompt / drain.track / <code>noOverlap=true</code> / register-rollback. Slack target 분기
+          (<code>thread</code> vs <code>channel</code>).
+        </li>
+        <li>
+          <strong>(5) factory wrapper</strong> — <code>slackAdapter()</code> · <code>postgresState()</code>
+          · <code>createMemoryState()</code> · <code>requiredEnv()</code> 로 외부 빌더가
+          <code>@chat-adapter/*</code> 직접 import 안 해도 되게 진입 단순화.
+        </li>
+      </ol>
+
+      <h2 id="starter">4. starter 패턴 — <code>templates/slack-agent/</code></h2>
+      <p>
+        step 4.6 (<code>cbc0208</code>) 의 핵심 산출물. 외부 빌더가 이 디렉토리를 복제하고 env 3개만
+        채우면 lily 같은 봇이 즉시 도는 형태. <code>templates/slack-agent/src/index.ts</code> 전체:
+      </p>
+
+      <pre><code>import { defineConfig, requiredEnv, run } from "@sena-ai/app";
+import { slackAdapter } from "@sena-ai/app/adapters/slack";
+import { channelContext, traceLogger } from "@sena-ai/app/middlewares";
+import { cronSchedule } from "@sena-ai/app/schedules";
+import { postgresState } from "@sena-ai/app/state";
+import { claudeCode } from "ai-sdk-provider-claude-code";
+
+const config = defineConfig({
+  cwd: import.meta.dirname,
+  model: claudeCode("sonnet"),
+  adapters: [
+    slackAdapter({
+      appToken: requiredEnv("SLACK_APP_TOKEN"),
+      botToken: requiredEnv("SLACK_BOT_TOKEN"),
+    }),
+  ],
+  middlewares: [
+    channelContext({
+      cwd: import.meta.dirname,
+      channelsFile: ".sena/channels.json",
+      memoryDir: ".sena/channels",
+    }),
+    traceLogger({ label: "sena" }),
+  ],
+  schedules: [
+    cronSchedule({
+      name: "morning-briefing",
+      cron: "0 8 * * *",
+      target: { type: "slack-channel", id: "C0YOURCHANNEL" },
+      prompt: { file: ".sena/prompts/morning-briefing.md" },
+    }),
+  ],
+  state: postgresState({ connectionString: requiredEnv("DATABASE_URL") }),
+});
+
+const app = await run(config, { steerMode: "steering" });
+
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, () =&gt; {
+    void app.shutdown().then(() =&gt; process.exit(0));
+  });
+}
+</code></pre>
+
+      <p>요약:</p>
+      <ul>
+        <li>
+          <strong>env 3 개</strong>: <code>SLACK_APP_TOKEN</code> · <code>SLACK_BOT_TOKEN</code> ·
+          <code>DATABASE_URL</code>. <code>claudeCode("sonnet")</code> 는 cc CLI 로그인 세션을 재사용하므로
+          별도 키 불필요.
+        </li>
+        <li>
+          외부 빌더가 <strong>SDK 객체를 직접 다루지 않는다</strong> — <code>@chat-adapter/*</code> /
+          <code>chat</code> 패키지를 직접 import 하지 않고 우리 factory wrapper 로만 받는다.
+        </li>
+        <li>
+          <code>app.shutdown()</code> 은 chat.shutdown + drain + signal handler 정리까지. <code>process.exit</code> 만
+          호출자가 명시 (라이브러리 임베드 시나리오 보호).
+        </li>
+      </ul>
+
+      <h2 id="mention-flow">5. 운영 흐름 — mention 한 번 → 응답까지</h2>
+      <p>Slack 사용자 멘션이 들어와 응답이 나갈 때까지의 데이터 흐름.</p>
+
+      <pre><code>① Slack 사용자 멘션
+        │ (Socket Mode)
+        ▼
+② @chat-adapter/slack  ──→  chat-sdk Chat
+        │                        │
+        │   chat-sdk dispatcher  │
+        │                        ▼
+        │              concurrency=concurrent (steering 위임)
+        │                        │
+        ▼                        ▼
+③ chat.onNewMention(thread, message, ctx)
+        │
+        │  ┌───────────────────────────────────────────────┐
+        │  │ run.ts 가 등록한 wrapper:                      │
+        │  │  • drain.track("onNewMention")  ─┐            │
+        │  │  • thread.subscribe()            │ inFlight++ │
+        │  │  • runWithTurnContext({          │            │
+        │  │      adapter:"slack",            │            │
+        │  │      channelId, threadId,        │            │
+        │  │      trigger:"mention" })        │            │
+        │  └───────────────────────────────────────────────┘
+        │
+        ▼
+④ steering handler (steerMode 기본):
+        │
+        │  • gracefulDrainSkip (drain 중이면 안내 후 빠짐)
+        │  • SteeringRegistry.set(threadKey, { controller, ... })
+        │  • prev 슬롯 있으면 prev.controller.abort() + 안내 post
+        │  • streamText({ model: wrappedModel, prompt, tools, stopWhen })
+        │  • silenceStreamTextRejections(result)  ← background 14 필드 noop catch
+        │
+        ▼
+⑤ ai-sdk wrapLanguageModel chain (transformParams):
+        ├─ channelContext.transformParams
+        │     └─ getTurnContext().channelId 기준 channels.json + memory.md 로드
+        │        → system message append
+        └─ traceLogger.transformParams / wrapStream
+              └─ "[sena] turn.start type=... chars=..."
+        │
+        ▼
+⑥ LanguageModelV3 (claudeCode / codex-cli)
+        │
+        ▼   fullStream (text-delta · tool-call · tool-result · finish ...)
+        │
+⑦ safePostStream(thread, result):
+        ├─ thread._currentMessage.author.userId 있으면 → thread.post(fullStream)  (streaming)
+        └─ 없으면 (외부 reference)             → await result.text → thread.post(string)
+        │
+        ▼
+⑧ chat-sdk → state-pg 에 응답 메시지 기록 + Slack API 송신
+        │
+        ▼
+⑨ drain.track finally: inFlight--
+   SteeringRegistry.releaseIf(threadKey, slot)</code></pre>
+
+      <p>핵심 포인트:</p>
+      <ul>
+        <li>
+          <strong>turn-context</strong>는 AsyncLocalStorage 라 핸들러가 호출하는 모든 ai-sdk middleware /
+          tool 이 같은 turn 의 channelId/threadId 를 read-only 로 본다.
+        </li>
+        <li>
+          <strong>두 번째 멘션이 같은 thread 에 도착</strong>하면 ④ 단계에서 prev slot 의 controller.abort() →
+          ⑥ 의 streamText 가 AbortError 로 마감 → 새 slot 으로 재진입. 이때 reject 되는 background
+          <code>PromiseLike</code> 14 개를 ⑦ 직전의 <code>silenceStreamTextRejections</code> 가 미리 noop catch 등록해
+          둬서 process kill 회피 (5/10 회귀 fix).
+        </li>
+        <li>
+          <strong>SIGTERM</strong> 이 들어오면 drain wrapper 가 inFlight=0 까지 기다린 뒤
+          <code>chat.shutdown()</code> 호출. <code>process.exit</code> 은 호출자 책임.
+        </li>
+      </ul>
+
+      <h2 id="cron-flow">6. schedules fan-out 흐름</h2>
+      <p>
+        cron 트리거는 incoming message 가 없는 <em>stand-alone trigger</em> 라서 mention 흐름과 분기가
+        다르다.
+      </p>
+
+      <pre><code>① run() 안에서 setupScheduleFanOut(schedules, deps)
+        │
+        │  Phase 1: 모든 spec validate (cron 표현 + target 형태)
+        │  Phase 2: nodeCron.schedule(spec, cb, {
+        │            timezone: "Asia/Seoul",
+        │            noOverlap: true,
+        │          })
+        │  실패 시 already-registered task 들 stop+destroy 로 rollback
+        │
+        ▼
+② cron tick (예: "0 8 * * *" KST)
+        │
+        ▼
+③ if (stopping || drain.draining) → skip (shutdown 진입 시 race-safe)
+        │
+        ▼
+④ drain.track(`schedule:${name}`, async () =&gt; { ... })
+        │
+        │  • promptText = lazy fs.readFile (재시작 없이 prompt 변경 반영)
+        │  • runWithTurnContext({
+        │      adapter:"slack",
+        │      channelId, threadId(if thread target),
+        │      trigger:"schedule"
+        │    })
+        │  • streamText({ model: wrappedModel, tools, stopWhen, prompt })
+        │  • silenceStreamTextRejections(result)
+        │  • text = await result.text         (streaming 미리보기 없음 — 외부 reference 라 #1 회피)
+        │
+        ▼
+⑤ target 분기:
+        ├─ kind:"thread"  → chat.thread(`slack:${id}:${threadTs}`).post(text)
+        └─ kind:"channel" → chat.channel(`slack:${id}`).post(text)
+        │
+        ▼
+⑥ chat-sdk 가 state-pg 에 일반 mention 응답과 똑같이 기록</code></pre>
+
+      <p>
+        <strong>step 4.5 history-aware 롤백</strong> (한 줄 요약): cron 의 본질은 <em>incoming message
+        없는 trigger</em>. thread/channel history 를 prompt 에 합치면 ① 채널 dispatch 시 임의 잡담이 모델
+        input 에 섞이고 ② thread dispatch 시 prompt 가 thread 에 안 남아 history 가 assistant-only
+        비대칭 — 두 결함 모두 cron 본질에서 옴. <strong>outbound</strong> (cron 응답이 state 에 정상 기록)만
+        충족하고 <strong>inbound</strong> history-aware 는 step 5+ 결정 보류.
+      </p>
+
+      <h2 id="state">7. 라이브 운영 상태 + 검증 통계</h2>
+      <table>
+        <thead>
+          <tr><th>항목</th><th>상태</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sena-bare</code> 프로세스</td>
+            <td><span class="pill pill-live">PID 59351 가동 중</span> · lily 봇</td>
+          </tr>
+          <tr>
+            <td>Slack socket</td>
+            <td><span class="pill pill-live">connected</span> · <code>@chat-adapter/slack</code> socket mode</td>
+          </tr>
+          <tr>
+            <td>state-pg</td>
+            <td><span class="pill pill-live">5 테이블 자동 생성</span> (subscriptions 포함)</td>
+          </tr>
+          <tr>
+            <td>패키지 검증</td>
+            <td>26 tests passing · typecheck clean · biome lint clean</td>
+          </tr>
+          <tr>
+            <td>v3 브랜치</td>
+            <td><code>f028ef7</code> pushed · 7 commits since PoC</td>
+          </tr>
+          <tr>
+            <td>패키지 export 표면</td>
+            <td>
+              <code>.</code> · <code>./middlewares</code> · <code>./schedules</code> ·
+              <code>./adapters/slack</code> · <code>./state</code> (+ <code>./state/postgres</code>,
+              <code>./state/memory</code>) · <code>./middlewares/channel-context</code> ·
+              <code>./middlewares/trace</code> · <code>./schedules/cron</code> · <code>./env</code>
+            </td>
+          </tr>
+          <tr>
+            <td>npm 배포</td>
+            <td><span class="pill pill-warn">미배포</span> — starter 가 <code>file:</code> 의존</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="limits">8. 알려진 제약 + step 5+ 영역</h2>
+      <ul>
+        <li>
+          <strong>ai-sdk 내부 unhandled rejection root fix</strong> — 우리는
+          <code>silenceStreamTextRejections</code> 로 known 14 필드만 cover. ai-sdk 가 abortSignal listener
+          안에서 만드는 내부 promise 까지는 못 잡음. ai-sdk/chat-sdk 내부 PR 영역 → step 5+.
+        </li>
+        <li>
+          <strong>Slack <code>triggers.filter(event)</code> 정식 구현</strong> — 4/4 spec 살아있는데
+          코드 미구현. 작업 thread subscription leak 시나리오의 정공법 → step 5+.
+        </li>
+        <li>
+          <strong><code>conversation</code> ScheduleTarget type</strong> — chat-sdk Conversation id 가
+          transport-scoped thread key 와 같은 형태인지 SPEC 미지수. 1차 fail-fast 유지 → step 5+.
+        </li>
+        <li>
+          <strong><code>@sena-ai/app</code> npm publish</strong> — 차니 sign-off 필요. 현재 starter 는
+          <code>file:</code> 의존으로 동작.
+        </li>
+        <li>
+          <strong>cron history-aware</strong> — 차니 "incoming 합성" 가설 (visible UX 결정 필요) 결정 보류 → step 5+.
+        </li>
+        <li>
+          <strong>mcpServers 통합</strong> — <code>SenaConfig.mcpServers</code> 자리는 박혀있고 fail-fast.
+          provider 옵션 병합으로 실제 연결 → step 5+.
+        </li>
+        <li>
+          <strong>attachment-aware 처리</strong> — 텍스트 없는 첨부 메시지는 현재 안내 응답으로 종료.
+          첨부 다운로드/도구 연결은 step 4+.
+        </li>
+      </ul>
+
+      <h2 id="links">관련 문서</h2>
+      <ul>
+        <li><a href="/sena-v3-step1-progress/" class="text-sky-700 underline hover:text-sky-600 dark:text-sky-400">§1 step 1~4.7 진행 보고</a> — 시간순 마이그레이션 흐름</li>
+        <li><a href="/sena-v3-poc-report/" class="text-sky-700 underline hover:text-sky-600 dark:text-sky-400">PoC 0단계 보고</a> — 라이브 검증으로 미지수 8 건 닫힘</li>
+        <li><a href="/sena-v3-prd/" class="text-sky-700 underline hover:text-sky-600 dark:text-sky-400">v3 PRD</a> — 한 줄 thesis 의 출처</li>
+        <li>
+          <a href="https://github.com/unlimiting-studio/sena-ai/tree/v3/packages/app" class="text-sky-700 underline hover:text-sky-600 dark:text-sky-400">@sena-ai/app 소스</a>
+          · <a href="https://github.com/unlimiting-studio/sena-ai/tree/v3/templates/slack-agent" class="text-sky-700 underline hover:text-sky-600 dark:text-sky-400">templates/slack-agent</a>
+        </li>
+      </ul>
+    </main>
+
+    <footer class="border-t border-slate-200 py-8 dark:border-slate-800">
+      <div class="mx-auto max-w-3xl px-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        세나 (차니 의뢰) · 2026-05-10 · sena-ai v3 아키텍처 &amp; 코드베이스 보고서
+      </div>
+    </footer>
+  </body>
+</html>
